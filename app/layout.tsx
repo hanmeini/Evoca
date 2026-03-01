@@ -1,6 +1,11 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/src/components/layout/Navbar";
+import { Footer } from "@/src/components/layout/Footer";
+import { usePathname } from "next/navigation";
+import { AuthProvider } from "@/src/context/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -13,22 +18,43 @@ const merriweather = Merriweather({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Evoca AI - Educational PDF Reader",
-  description: "Transform PDFs into interactive Quizzes, Podcasts, and Chat.",
-};
+import { MobileBottomNav } from "@/src/components/layout/MobileBottomNav";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+
+  // Don't show the marketing Navbar/Footer on Auth or Dashboard pages
+  const isMarketingPage =
+    !pathname?.startsWith("/dashboard") &&
+    !pathname?.startsWith("/login") &&
+    !pathname?.startsWith("/register") &&
+    !pathname?.startsWith("/ai-reader"); // Also hide in the reader view
+
+  const hideMobileNav =
+    isMarketingPage ||
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/register");
+
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${merriweather.variable} antialiased bg-stone-50 text-stone-900 font-sans selection:bg-stone-200`}
+        className={`${inter.variable} ${merriweather.variable} antialiased bg-[var(--color-evoca-bg)] text-stone-900 font-sans selection:bg-stone-200 min-h-screen pb-24 sm:pb-0`}
       >
-        {children}
+        <AuthProvider>
+          <div className="flex flex-col min-h-screen">
+            {isMarketingPage && <Navbar />}
+            <main className={`flex-1 ${isMarketingPage ? "pt-16" : ""}`}>
+              {children}
+            </main>
+            {isMarketingPage && <Footer />}
+
+            {!hideMobileNav && <MobileBottomNav />}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

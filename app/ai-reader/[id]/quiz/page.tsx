@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, ArrowRight, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
 type QuizItem = {
@@ -79,13 +85,15 @@ export default function AiReaderQuizPage({
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center">
-        <Loader2 className="w-8 h-8 text-stone-900 animate-spin mb-4 mx-auto" />
-        <p className="font-serif text-xl font-medium text-stone-900">
+      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center animate-pulse">
+        <div className="w-20 h-20 bg-[#F472B6] rounded-3xl flex items-center justify-center mb-6 shadow-xl border-4 border-white animate-bounce-slow">
+          <Loader2 className="w-10 h-10 text-white animate-spin" />
+        </div>
+        <p className="font-serif text-2xl font-black text-stone-900 mb-2">
           Membuat Kuis AI...
         </p>
-        <p className="text-stone-500 text-sm">
-          Membaca dokumen dan merancang pertanyaan.
+        <p className="text-stone-500 font-medium">
+          Membaca dokumen dan merancang pertanyaan menantang.
         </p>
       </div>
     );
@@ -93,12 +101,14 @@ export default function AiReaderQuizPage({
 
   if (error || quizData.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center">
-        <XCircle className="w-8 h-8 text-rose-600 mb-4 mx-auto" />
-        <p className="font-serif text-xl font-medium text-stone-900 mb-2">
+      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center">
+        <div className="w-20 h-20 bg-rose-500 rounded-3xl flex items-center justify-center mb-6 shadow-xl border-4 border-white">
+          <XCircle className="w-10 h-10 text-white" />
+        </div>
+        <p className="font-serif text-2xl font-black text-rose-950 mb-2">
           Gagal Memuat Kuis
         </p>
-        <p className="text-stone-500 text-sm max-w-sm mx-auto">
+        <p className="text-rose-600/80 font-medium max-w-sm mx-auto">
           {error || "AI tidak dapat membuat kuis dari teks ini."}
         </p>
       </div>
@@ -108,30 +118,36 @@ export default function AiReaderQuizPage({
   if (isFinished) {
     return (
       <div className="container mx-auto px-4 py-16 max-w-2xl text-center">
-        <div className="bg-white border border-stone-200 rounded-xl p-12 shadow-sm">
-          <div className="inline-flex justify-center items-center w-20 h-20 rounded-full bg-stone-100 mb-6">
-            <span className="font-serif text-3xl font-bold text-stone-900">
-              {score}/{quizData.length}
-            </span>
+        <div className="bg-[#FEF3C7] border-4 border-white rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-300 rounded-full blur-3xl opacity-50"></div>
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-300 rounded-full blur-3xl opacity-50"></div>
+
+          <div className="relative z-10">
+            <div className="inline-flex justify-center flex-col items-center w-32 h-32 rounded-full border-4 border-white bg-amber-400 mb-8 shadow-xl text-amber-950 animate-bounce-slow">
+              <Sparkles className="w-8 h-8 mb-1" />
+              <span className="font-serif text-4xl font-black leading-none">
+                {score}/{quizData.length}
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl md:text-4xl font-black text-amber-950 mb-4">
+              Kuis Selesai!
+            </h2>
+            <p className="text-amber-800/80 font-bold mb-10 max-w-sm mx-auto text-lg leading-relaxed">
+              Luar biasa! Anda telah menyelesaikan kuis ini.
+            </p>
+            <button
+              onClick={() => {
+                setCurrentQuestion(0);
+                setSelectedOption(null);
+                setIsAnswered(false);
+                setScore(0);
+                setIsFinished(false);
+              }}
+              className="inline-flex h-14 items-center justify-center rounded-full bg-amber-950 px-10 py-2 text-lg font-bold text-amber-50 shadow-xl transition-transform hover:-translate-y-1"
+            >
+              Coba Lagi
+            </button>
           </div>
-          <h2 className="font-serif text-3xl font-bold text-stone-900 mb-4">
-            Kuis Selesai!
-          </h2>
-          <p className="text-stone-600 mb-8 max-w-sm mx-auto">
-            Anda telah berhasil menyelesaikan kuis buatan AI untuk dokumen ini.
-          </p>
-          <button
-            onClick={() => {
-              setCurrentQuestion(0);
-              setSelectedOption(null);
-              setIsAnswered(false);
-              setScore(0);
-              setIsFinished(false);
-            }}
-            className="inline-flex h-10 items-center justify-center rounded-sm bg-stone-900 px-8 py-2 text-sm font-medium text-stone-50 shadow transition-colors hover:bg-stone-800"
-          >
-            Ulangi Kuis
-          </button>
         </div>
       </div>
     );
@@ -140,22 +156,22 @@ export default function AiReaderQuizPage({
   const quiz = quizData[currentQuestion];
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-3xl">
-      <div className="bg-white border border-stone-200 rounded-xl p-8 md:p-12 shadow-sm">
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="bg-white border-2 border-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-stone-200/50">
         <div className="flex items-center justify-between mb-8">
-          <span className="text-xs font-bold uppercase tracking-widest text-stone-400">
-            Pertanyaan {currentQuestion + 1} dari {quizData.length}
-          </span>
-          <span className="text-xs font-bold uppercase tracking-widest text-stone-400">
+          <div className="bg-stone-100 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-stone-500 shadow-inner">
+            Q {currentQuestion + 1} / {quizData.length}
+          </div>
+          <div className="bg-[#A78BFA] text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-md">
             Skor: {score}
-          </span>
+          </div>
         </div>
 
-        <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-900 mb-10 text-balance leading-snug">
+        <h2 className="font-serif text-2xl md:text-3xl font-black tracking-tight text-stone-900 mb-10 text-balance leading-snug">
           {quiz.question}
         </h2>
 
-        <div className="space-y-3 mb-10">
+        <div className="space-y-4 mb-10">
           {quiz.options.map((option, idx) => {
             const isSelected = selectedOption === idx;
             const isCorrect = idx === quiz.answerIndex;
@@ -168,38 +184,40 @@ export default function AiReaderQuizPage({
                 disabled={isAnswered}
                 onClick={() => handleSelect(idx)}
                 className={cn(
-                  "w-full flex items-center justify-between p-4 rounded-lg border text-left transition-all",
+                  "w-full flex items-center justify-between p-5 rounded-2xl border-2 text-left transition-all duration-300 transform",
                   !isAnswered &&
-                    "border-stone-200 hover:border-stone-400 hover:bg-stone-50",
+                    "border-stone-100 hover:border-indigo-200 hover:bg-indigo-50/50 hover:-translate-y-1 hover:shadow-md",
                   isSelected &&
                     !isAnswered &&
-                    "border-stone-900 ring-1 ring-stone-900 bg-stone-50",
+                    "border-indigo-600 bg-indigo-50 shadow-md",
                   showCorrect &&
-                    "border-emerald-500 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500",
+                    "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-lg scale-[1.02]",
                   showWrong &&
-                    "border-rose-300 bg-rose-50 text-rose-900 opacity-80",
+                    "border-rose-300 bg-rose-50 text-rose-950 opacity-90 scale-[0.98]",
                   isAnswered &&
                     !isSelected &&
                     !isCorrect &&
-                    "opacity-50 border-stone-200",
+                    "opacity-50 border-stone-100 grayscale",
                 )}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-5">
                   <span
                     className={cn(
-                      "shrink-0 w-8 h-8 rounded-full border flex items-center justify-center text-sm font-bold",
+                      "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shadow-inner transition-colors",
                       showCorrect
-                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        ? "bg-emerald-500 text-white"
                         : showWrong
-                          ? "border-rose-500 bg-rose-500 text-white"
-                          : "border-stone-200 bg-stone-50 text-stone-500",
+                          ? "bg-rose-500 text-white"
+                          : isSelected
+                            ? "bg-indigo-600 text-white"
+                            : "bg-stone-100 text-stone-600",
                     )}
                   >
                     {String.fromCharCode(65 + idx)}
                   </span>
                   <span
                     className={cn(
-                      "font-medium",
+                      "font-bold text-[15px] leading-relaxed",
                       showCorrect || showWrong
                         ? "text-inherit"
                         : "text-stone-700",
@@ -210,24 +228,26 @@ export default function AiReaderQuizPage({
                 </div>
 
                 {showCorrect && (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
                 )}
-                {showWrong && <XCircle className="w-5 h-5 text-rose-600" />}
+                {showWrong && (
+                  <XCircle className="w-6 h-6 text-rose-500 shrink-0" />
+                )}
               </button>
             );
           })}
         </div>
 
         {isAnswered && (
-          <div className="flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex justify-end animate-in fade-in slide-in-from-bottom-4 duration-500">
             <button
               onClick={nextQuestion}
-              className="inline-flex items-center justify-center rounded-sm bg-stone-900 px-6 py-2.5 text-sm font-medium text-stone-50 shadow transition-colors hover:bg-stone-800"
+              className="inline-flex h-14 items-center justify-center rounded-full bg-stone-900 px-8 text-sm font-bold text-white shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl"
             >
               {currentQuestion < quizData.length - 1
                 ? "Pertanyaan Berikutnya"
-                : "Selesaikan Kuis"}
-              <ArrowRight className="ml-2 w-4 h-4" />
+                : "Lihat Hasil"}
+              <ArrowRight className="ml-3 w-5 h-5" />
             </button>
           </div>
         )}

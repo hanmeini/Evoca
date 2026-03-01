@@ -3,6 +3,12 @@
 @theme {
   --font-sans: var(--font-inter);
   --font-serif: var(--font-merriweather);
+  --color-evoca-bg: #e6eafb;
+  /* Defining extra large border radii for the pill/squircle look */
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
+  --radius-5xl: 3.5rem;
 }
 
 @layer utilities {
@@ -11,24 +17,23 @@
   }
 }
 
+body {
+  background-color: var(--color-evoca-bg);
+  /* Ensure a very smooth scrolling experience */
+  scroll-behavior: smooth;
+}
+
 /* Subtle editorial background and selection color */
 ::selection {
-  background-color: #d6d3d1; /* stone-300 */
-  color: #1c1917; /* stone-900 */
+  background-color: #d6d3d1;
+  /* stone-300 */
+  color: #1c1917;
+  /* stone-900 */
 }
 
 /* Scrollbar styling for a cleaner look */
 ::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
+  width: 0px;
+  /* Hide scrollbar completely to match mobile app aesthetic */
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  background: #a8a29e; /* stone-400 */
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #78716c; /* stone-500 */
-}
-

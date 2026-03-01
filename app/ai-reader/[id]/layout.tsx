@@ -30,23 +30,31 @@ export default function AiReaderLayout({
   ];
 
   return (
-    <div className="flex-1 flex flex-col w-full">
+    <div className="flex-1 flex flex-col w-full bg-[var(--color-evoca-bg)] min-h-screen">
       {/* Reader Header */}
-      <header className="border-b border-stone-200 bg-white sticky top-16 z-40">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="sticky top-6 z-40 px-4 mt-6">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between bg-white rounded-[2rem] p-4 shadow-xl border border-white">
           <Link
-            href="/"
-            className="inline-flex items-center text-sm font-medium text-stone-500 hover:text-stone-900 mb-4 transition-colors"
+            href="/dashboard"
+            className="hidden md:flex items-center justify-center w-12 h-12 bg-stone-100 hover:bg-stone-200 text-stone-900 rounded-2xl transition-all"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Kembali ke Perpustakaan
+            <ArrowLeft className="w-5 h-5" />
           </Link>
 
-          <h1 className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-stone-900 mb-6">
-            Pembaca Dokumen AI
-          </h1>
+          {/* Mobile Back Button */}
+          <div className="w-full flex justify-between items-center md:hidden mb-4 px-2">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-sm font-bold text-stone-500"
+            >
+              <ArrowLeft className="w-4 h-4" /> Library
+            </Link>
+            <h1 className="font-serif text-lg font-black text-stone-900">
+              AI Reader
+            </h1>
+          </div>
 
-          <div className="flex overflow-x-auto no-scrollbar gap-2 pb-1">
+          <div className="flex overflow-x-auto no-scrollbar gap-2 w-full md:w-auto md:ml-auto">
             {tabs.map((tab) => {
               const isActive = pathname === tab.href;
               const Icon = tab.icon;
@@ -55,13 +63,18 @@ export default function AiReaderLayout({
                   key={tab.name}
                   href={tab.href}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
+                    "flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
                     isActive
-                      ? "bg-stone-900 text-stone-50"
-                      : "bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900",
+                      ? "bg-rose-500 text-white shadow-md -translate-y-0.5"
+                      : "bg-transparent text-stone-500 hover:bg-stone-50 hover:text-stone-900",
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon
+                    className={cn(
+                      "w-4 h-4",
+                      isActive ? "text-white" : "text-stone-400",
+                    )}
+                  />
                   {tab.name}
                 </Link>
               );
@@ -71,7 +84,7 @@ export default function AiReaderLayout({
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 bg-stone-50/50">{children}</div>
+      <div className="flex-1 w-full pt-4 pb-24 md:pb-12">{children}</div>
     </div>
   );
 }
