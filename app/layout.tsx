@@ -22,22 +22,22 @@ const merriweather = Merriweather({
 const lato = localFont({
   src: [
     {
-      path: "../public/fonts/lato/Lato-Regular.ttf",
+      path: "../public/fonts/Lato/Lato-Regular.ttf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../public/fonts/lato/Lato-Bold.ttf",
+      path: "../public/fonts/Lato/Lato-Bold.ttf",
       weight: "700",
       style: "normal",
     },
     {
-      path: "../public/fonts/lato/Lato-Black.ttf",
+      path: "../public/fonts/Lato/Lato-Black.ttf",
       weight: "900",
       style: "normal",
     },
     {
-      path: "../public/fonts/lato/Lato-BlackItalic.ttf",
+      path: "../public/fonts/Lato/Lato-BlackItalic.ttf",
       weight: "900",
       style: "italic",
     },
