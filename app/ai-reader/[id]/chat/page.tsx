@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { CornerDownLeft, Loader2, Bot, User } from "lucide-react";
+import { CornerDownLeft, Loader2, Bot, User, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/src/lib/utils";
 
 type Message = {
@@ -30,6 +31,32 @@ export default function AiReaderChatPage({
   const [isLoading, setIsLoading] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchChatHistory() {
+      try {
+        const response = await fetch(`/api/chat-history?documentId=${id}`);
+        const data = await response.json();
+        if (data.success && data.chatHistory && data.chatHistory.length > 0) {
+          setMessages(
+            data.chatHistory.map(
+              (
+                m: { role: "user" | "assistant"; content: string },
+                i: number,
+              ) => ({
+                id: `hist-${i}`,
+                role: m.role,
+                content: m.content,
+              }),
+            ),
+          );
+        }
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+      }
+    }
+    fetchChatHistory();
+  }, [id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,7 +117,15 @@ export default function AiReaderChatPage({
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-4xl">
+    <div className="h-[calc(100vh-160px)] flex flex-col container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-4xl">
+      <Link
+        href={`/ai-reader/${id}`}
+        className="inline-flex items-center gap-2 text-stone-500 hover:text-stone-900 font-black uppercase text-xs tracking-widest mb-4 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4 stroke-[3px]" />
+        Kembali ke Jalur Belajar
+      </Link>
+
       <div className="bg-white border-2 border-stone-100 rounded-[2.5rem] shadow-2xl flex-1 flex flex-col overflow-hidden relative">
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scroll-smooth no-scrollbar pb-32">
@@ -149,6 +184,17 @@ export default function AiReaderChatPage({
                 <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                 <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce"></div>
               </div>
+            </div>
+          )}
+
+          {messages.length > 5 && (
+            <div className="flex justify-center pt-8 pb-4">
+              <Link
+                href={`/ai-reader/${id}`}
+                className="bg-[#58cc02] text-white font-black px-8 py-3 rounded-2xl shadow-lg border-b-4 border-[#46a302] active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest text-[10px]"
+              >
+                Selesaikan Misi ✨
+              </Link>
             </div>
           )}
 

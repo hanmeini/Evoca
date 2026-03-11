@@ -74,6 +74,22 @@ Answer the user's questions based ONLY on this text. Keep your answers concise, 
     
     const replyText = response.text || "Saya tidak yakin bagaimana harus menjawab itu berdasarkan dokumen tersebut.";
 
+    // 4. Save message pair to Firestore
+    try {
+      const timestamp = new Date().toISOString();
+      await docRef.update({
+        chatHistory: [
+          ...(docData.chatHistory || []),
+          { role: 'user', content: lastUserMessage.content, timestamp },
+          { role: 'assistant', content: replyText, timestamp }
+        ]
+      });
+    } catch (saveError) {
+      console.error("Failed to save chat history:", saveError);
+      // We don't block the response even if saving history fails, 
+      // but we log it.
+    }
+
     return NextResponse.json({ success: true, reply: replyText }, { status: 200 });
 
   } catch (error: unknown) {

@@ -10,7 +10,9 @@ import {
   Loader2,
   XCircle,
   Headphones,
+  ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/src/lib/utils";
 import { use } from "react";
 
@@ -159,6 +161,14 @@ export default function AiReaderPodcastPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Link
+        href={`/ai-reader/${id}`}
+        className="inline-flex items-center gap-2 text-stone-500 hover:text-stone-900 font-black uppercase text-xs tracking-widest mb-8 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4 stroke-[3px]" />
+        Kembali ke Jalur Belajar
+      </Link>
+
       <div className="bg-[#E0E7FF] border-4 border-white rounded-[3rem] p-8 md:p-14 shadow-2xl overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 -translate-x-1/2 translate-y-1/2 pointer-events-none" />
@@ -291,6 +301,16 @@ export default function AiReaderPodcastPage({
               </div>
             );
           })}
+        </div>
+
+        {/* Finish Button */}
+        <div className="mt-12 flex justify-center pb-20">
+          <Link
+            href={`/ai-reader/${id}`}
+            className="bg-[#58cc02] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest text-sm"
+          >
+            Selesaikan Tahap 3 ✨
+          </Link>
         </div>
       </div>
     </div>

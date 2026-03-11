@@ -1,15 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  ArrowLeft,
-  BookText,
-  Headphones,
-  MessageSquareText,
-} from "lucide-react";
-import { cn } from "@/src/lib/utils";
-
+import { useEffect, useState } from "react";
+import { ArrowLeft, NotebookTabs } from "lucide-react";
 import { use } from "react";
 
 export default function AiReaderLayout({
@@ -19,72 +12,60 @@ export default function AiReaderLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
-  const pathname = usePathname();
   const { id } = use(params);
+  const [docTitle, setDocTitle] = useState("Loading...");
 
-  const tabs = [
-    { name: "Overview", href: `/ai-reader/${id}`, icon: BookText },
-    { name: "Quiz", href: `/ai-reader/${id}/quiz`, icon: BookText },
-    { name: "Podcast", href: `/ai-reader/${id}/podcast`, icon: Headphones },
-    { name: "Chat", href: `/ai-reader/${id}/chat`, icon: MessageSquareText },
-  ];
+  useEffect(() => {
+    async function fetchDoc() {
+      try {
+        const response = await fetch(`/api/document/${id}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          const data = result.data;
+          setDocTitle(
+            data.metadata?.title || data.fileName || "Untitiled Document",
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching doc in layout:", error);
+      }
+    }
+    fetchDoc();
+  }, [id]);
 
   return (
-    <div className="flex-1 flex flex-col w-full bg-[var(--color-evoca-bg)] min-h-screen">
-      {/* Reader Header */}
-      <header className="sticky top-6 z-40 px-4 mt-6">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between bg-white rounded-[2rem] p-4 shadow-xl border border-white">
-          <Link
-            href="/dashboard"
-            className="hidden md:flex items-center justify-center w-12 h-12 bg-stone-100 hover:bg-stone-200 text-stone-900 rounded-2xl transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-
-          {/* Mobile Back Button */}
-          <div className="w-full flex justify-between items-center md:hidden mb-4 px-2">
+    <div className="flex-1 flex flex-col w-full bg-[#f7f7f7] min-h-screen">
+      {/* Duolingo-style Green Header */}
+      <header className="sticky top-0 z-40 bg-[#58cc02] text-white shadow-md">
+        <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 text-sm font-bold text-stone-500"
+              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition-all"
             >
-              <ArrowLeft className="w-4 h-4" /> Library
+              <ArrowLeft className="w-5 h-5 stroke-[3px]" />
             </Link>
-            <h1 className="font-serif text-lg font-black text-stone-900">
-              AI Reader
-            </h1>
+
+            <div>
+              <p className="text-[10px] md:text-xs font-black uppercase tracking-widest opacity-80 decoration-white/50 underline-offset-4 mb-1">
+                BAGIAN 1, UNIT 1
+              </p>
+              <h1 className="font-black text-lg md:text-2xl leading-tight line-clamp-1">
+                {docTitle}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex overflow-x-auto no-scrollbar gap-2 w-full md:w-auto md:ml-auto">
-            {tabs.map((tab) => {
-              const isActive = pathname === tab.href;
-              const Icon = tab.icon;
-              return (
-                <Link
-                  key={tab.name}
-                  href={tab.href}
-                  className={cn(
-                    "flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
-                    isActive
-                      ? "bg-rose-500 text-white shadow-md -translate-y-0.5"
-                      : "bg-transparent text-stone-500 hover:bg-stone-50 hover:text-stone-900",
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "w-4 h-4",
-                      isActive ? "text-white" : "text-stone-400",
-                    )}
-                  />
-                  {tab.name}
-                </Link>
-              );
-            })}
-          </div>
+          <button className="bg-white/20 hover:bg-white/30 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+            <NotebookTabs className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">Buku Panduan</span>
+            <span className="sm:hidden">Panduan</span>
+          </button>
         </div>
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 w-full pt-4 pb-24 md:pb-12">{children}</div>
+      <div className="flex-1 w-full pb-24 md:pb-12">{children}</div>
     </div>
   );
 }

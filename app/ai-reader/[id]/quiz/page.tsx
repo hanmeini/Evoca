@@ -7,7 +7,9 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
+  ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/src/lib/utils";
 
 type QuizItem = {
@@ -135,18 +137,26 @@ export default function AiReaderQuizPage({
             <p className="text-amber-800/80 font-bold mb-10 max-w-sm mx-auto text-lg leading-relaxed">
               Luar biasa! Anda telah menyelesaikan kuis ini.
             </p>
-            <button
-              onClick={() => {
-                setCurrentQuestion(0);
-                setSelectedOption(null);
-                setIsAnswered(false);
-                setScore(0);
-                setIsFinished(false);
-              }}
-              className="inline-flex h-14 items-center justify-center rounded-full bg-amber-950 px-10 py-2 text-lg font-bold text-amber-50 shadow-xl transition-transform hover:-translate-y-1"
-            >
-              Coba Lagi
-            </button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <button
+                onClick={() => {
+                  setCurrentQuestion(0);
+                  setSelectedOption(null);
+                  setIsAnswered(false);
+                  setScore(0);
+                  setIsFinished(false);
+                }}
+                className="inline-flex h-14 items-center justify-center rounded-full bg-stone-100 px-8 text-lg font-bold text-stone-900 shadow-sm transition-transform hover:-translate-y-1"
+              >
+                Coba Lagi
+              </button>
+              <Link
+                href={`/ai-reader/${id}`}
+                className="inline-flex h-14 items-center justify-center rounded-full bg-[#58cc02] px-10 py-2 text-lg font-bold text-white shadow-xl transition-transform hover:-translate-y-1 border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 uppercase tracking-widest"
+              >
+                Selesai ✨
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -157,6 +167,14 @@ export default function AiReaderQuizPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <Link
+        href={`/ai-reader/${id}`}
+        className="inline-flex items-center gap-2 text-stone-500 hover:text-stone-900 font-black uppercase text-xs tracking-widest mb-8 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4 stroke-[3px]" />
+        Kembali ke Jalur Belajar
+      </Link>
+
       <div className="bg-white border-2 border-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-stone-200/50">
         <div className="flex items-center justify-between mb-8">
           <div className="bg-stone-100 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-stone-500 shadow-inner">
