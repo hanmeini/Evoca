@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
 
     // Select different voices for Speaker A and Speaker B
     // You can replace these with your preferred ElevenLabs Voice IDs
+    // A: Female Voice (Bella), B: Male Voice (Antoni)
     const voiceId = speakerId === "A" 
-      ? "JBFqnCBsd6RMkjVDRZzb" // Example Voice A (e.g. George)
-      : "CwhRBWXzGAHq8TQ4Fs17"; // Example Voice B (e.g. Roger)
+      ? "EXAVITQu4vr4xnSDxMaL" // Bella (American, Soft Female)
+      : "ErXwobaYiN019PkySvjV"; // Antoni (American, Well-rounded Male)
 
     const elevenlabs = new ElevenLabsClient({
       apiKey: process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY,

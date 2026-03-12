@@ -144,24 +144,6 @@ export default function DashboardOverviewPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center w-full space-y-16 relative py-12">
-                {/* Zig-Zag Connectors Background - More Curved & Compact */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-full pointer-events-none opacity-10">
-                  <svg
-                    className="w-full h-full"
-                    viewBox="0 0 200 4000"
-                    preserveAspectRatio="none"
-                  >
-                    <path
-                      d="M100,0 Q280,320 100,640 Q-80,960 100,1280 Q280,1600 100,1920 Q-80,2240 100,2560 Q280,2880 100,3200 Q-80,3520 100,3840"
-                      fill="none"
-                      stroke="#8b5cf6"
-                      strokeWidth="12"
-                      strokeDasharray="20 25"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-
                 {/* Path Units */}
                 {history.length > 0 && (
                   <div className="flex flex-col items-center w-full space-y-0 relative z-10">
@@ -169,14 +151,17 @@ export default function DashboardOverviewPage() {
                     {[...history].reverse().map((doc, idx) => {
                       const progress = calculateProgress(doc);
                       
+                      // Identify if it's the most recent node that isn't fully completed
+                      const isCurrentActiveNode = doc.id === history[0]?.id && progress < 100;
+
                       // Units of 5
                       const unitIndex = Math.floor(idx / 5);
                       const positionInUnit = idx % 5;
-                      const isMonsterNode = positionInUnit < 4;
+                      const isMonsterNode = positionInUnit === 4;
 
-                      // Stronger Curved Offset Logic
+                      // Stronger Curved Offset Logic - Sine wave like pattern
                       const isUnitEven = unitIndex % 2 === 0;
-                      const baseOffsets = [0, 100, 140, 100, 0];
+                      const baseOffsets = [0, 60, 95, 60, 0];
                       const xOffset = isUnitEven 
                         ? baseOffsets[positionInUnit] 
                         : -baseOffsets[positionInUnit];
@@ -184,26 +169,26 @@ export default function DashboardOverviewPage() {
                       return (
                         <div
                           key={doc.id}
-                          className="relative w-full flex flex-col items-center py-4"
+                          className="relative w-full flex flex-col items-center py-2"
                         >
-                          {/* Monster Mascot - Placed at node 2 (peak) */}
+                          {/* Monster Mascot - Placed at peak of the curve (inside the half circle) */}
                           {positionInUnit === 2 && (
                             <div
                               className={cn(
-                                "absolute top-1/2 -translate-y-1/2 hidden md:block z-0",
-                                isUnitEven ? "-left-32" : "-right-32"
+                                "absolute top-0 md:top-1/2 -translate-y-1/2 z-0",
+                                isUnitEven ? "right-1/2 mr-14 md:mr-16" : "left-1/2 ml-14 md:ml-16"
                               )}
                             >
-                              <div className="relative w-56 h-56 group">
+                              <div className="relative w-32 h-32 md:w-40 md:h-40 group pointer-events-auto">
                                 <video
                                   src="/animations/mascot-yeti.mp4"
                                   autoPlay
                                   loop
                                   muted
                                   playsInline
-                                  className="w-full h-full object-contain drop-shadow-2xl translate-y-4"
+                                  className="w-full h-full object-contain drop-shadow-2xl translate-y-2 pointer-events-none"
                                 />
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-2xl border border-stone-200 shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 origin-bottom">
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-xl border border-stone-200 shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 origin-bottom">
                                   <span className="text-[10px] font-black text-[#8b5cf6] uppercase tracking-tighter">YETI BOSS</span>
                                 </div>
                               </div>
@@ -211,6 +196,7 @@ export default function DashboardOverviewPage() {
                           )}
 
                           <div 
+                            className="relative z-10"
                             style={{ 
                               transform: `translateX(${xOffset}px)`,
                               transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' 
@@ -224,6 +210,7 @@ export default function DashboardOverviewPage() {
                               status={progress === 100 ? "completed" : "current"}
                               href={`/ai-reader/${doc.id}`}
                               specialType={isMonsterNode ? "monster" : "chest"}
+                              isTooltipVisible={isCurrentActiveNode}
                             />
                           </div>
                         </div>

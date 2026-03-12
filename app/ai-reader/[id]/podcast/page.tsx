@@ -33,7 +33,41 @@ export default function AiReaderPodcastPage({
   const [error, setError] = useState<string | null>(null);
 
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [trackProgress, setTrackProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const animationRef = useRef<number | null>(null);
+
+  // Audio Preloading Cache
+  const audioCache = useRef<Record<number, string>>({});
+  const fetchPromises = useRef<Record<number, Promise<string | null>>>({});
+
+  const preloadAudio = async (index: number, scriptLines: ScriptLine[]) => {
+    if (index >= scriptLines.length) return null;
+    if (audioCache.current[index]) return audioCache.current[index];
+    if (fetchPromises.current[index] !== undefined) return fetchPromises.current[index];
+
+    const promise = (async () => {
+      try {
+        const line = scriptLines[index];
+        const response = await fetch("/api/podcast-audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: line.text, speakerId: line.speaker }),
+        });
+        if (!response.ok) throw new Error("Failed to load audio");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        audioCache.current[index] = url;
+        return url;
+      } catch (err) {
+        console.error("Preload error:", err);
+        return null;
+      }
+    })();
+
+    fetchPromises.current[index] = promise;
+    return promise;
+  };
 
   useEffect(() => {
     async function loadPodcast() {
@@ -78,38 +112,61 @@ export default function AiReaderPodcastPage({
         return;
       }
 
-      const line = script[currentLineIndex];
-
       try {
-        const response = await fetch("/api/podcast-audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: line.text, speakerId: line.speaker }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load audio for current line.");
+        // Preload next immediate lines in the background
+        preloadAudio(currentLineIndex + 1, script);
+        if (currentLineIndex + 2 < script.length) {
+          preloadAudio(currentLineIndex + 2, script);
         }
 
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
+        const audioUrl = await preloadAudio(currentLineIndex, script);
+        if (!audioUrl) throw new Error("Failed connecting to cached audio.");
 
         if (audioRef.current) {
           audioRef.current.pause();
-          URL.revokeObjectURL(audioRef.current.src);
+          // DO NOT revoke URL here, as it's cached for fast scrubbing!
         }
 
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
 
         audio.onended = () => {
-          setCurrentLineIndex((prev) => prev + 1);
+          setTrackProgress(0);
+          if (animationRef.current) cancelAnimationFrame(animationRef.current);
+          
+          // Introduce a natural conversational pause (e.g. 400ms) before the next speaker
+          setTimeout(() => {
+            setCurrentLineIndex((prev) => prev + 1);
+          }, 400);
         };
 
-        audio.play();
+        const smoothlyUpdateProgress = () => {
+          if (audio && audio.duration) {
+            setTrackProgress(audio.currentTime / audio.duration);
+          }
+          if (!audio.paused && !audio.ended) {
+            animationRef.current = requestAnimationFrame(smoothlyUpdateProgress);
+          }
+        };
+
+        audio.onplay = () => {
+          animationRef.current = requestAnimationFrame(smoothlyUpdateProgress);
+        };
+
+        audio.onpause = () => {
+          if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.error("Playback interrupted:", err);
+          });
+        }
       } catch (err) {
         console.error("Audio Playback Error:", err);
         // Skip track and play next on error
+        setTrackProgress(0);
         setCurrentLineIndex((prev) => prev + 1);
       }
     };
@@ -119,6 +176,9 @@ export default function AiReaderPodcastPage({
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+      }
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
     };
   }, [isPlaying, currentLineIndex, script]);
@@ -200,11 +260,11 @@ export default function AiReaderPodcastPage({
             </div>
 
             <div className="mb-10">
-              <div className="w-full h-3 bg-white/50 border-2 border-white rounded-full overflow-hidden mb-3 cursor-pointer shadow-sm relative">
+              <div className="w-full h-3 bg-white/50 border-2 border-white rounded-full overflow-hidden mb-3 md:mb-4 cursor-pointer shadow-sm relative">
                 <div
-                  className="h-full bg-indigo-500 rounded-full relative transition-all duration-300 shadow-md"
+                  className="h-full bg-indigo-500 rounded-full relative shadow-md will-change-auto"
                   style={{
-                    width: `${(currentLineIndex / Math.max(script.length - 1, 1)) * 100}%`,
+                    width: `${((currentLineIndex + trackProgress) / Math.max(script.length, 1)) * 100}%`,
                   }}
                 >
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-indigo-500 rounded-full shadow-lg" />
@@ -224,9 +284,10 @@ export default function AiReaderPodcastPage({
               </div>
               <div className="flex items-center gap-4 md:gap-6 flex-1 justify-center">
                 <button
-                  onClick={() =>
-                    setCurrentLineIndex(Math.max(0, currentLineIndex - 1))
-                  }
+                  onClick={() => {
+                    setTrackProgress(0);
+                    setCurrentLineIndex(Math.max(0, currentLineIndex - 1));
+                  }}
                   className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
                 >
                   <Rewind className="w-6 h-6" />
@@ -242,11 +303,12 @@ export default function AiReaderPodcastPage({
                   )}
                 </button>
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    setTrackProgress(0);
                     setCurrentLineIndex(
                       Math.min(script.length - 1, currentLineIndex + 1),
-                    )
-                  }
+                    );
+                  }}
                   className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
                 >
                   <FastForward className="w-6 h-6" />
