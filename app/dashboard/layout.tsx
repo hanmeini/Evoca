@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Trophy,
   Target, // Replaced Settings with Target/Misi
+  PawPrint,
   LogOut,
   Star,
   Loader2,
@@ -43,6 +44,7 @@ export default function DashboardLayout({
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
     { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
     { icon: Target, label: "Misi Harian", href: "/dashboard/missions" },
+    { icon: PawPrint, label: "Peliharaan", href: "/dashboard/pet" },
   ];
 
   return (

@@ -56,8 +56,13 @@ export default function DashboardOverviewPage() {
 
   useEffect(() => {
     async function fetchHistory() {
+      if (!user?.uid) {
+         setLoading(false);
+         return;
+      }
+
       try {
-        const response = await fetch("/api/history");
+        const response = await fetch(`/api/history?userId=${user.uid}`);
         const data = await response.json();
         if (data.success && data.history) {
           setHistory(data.history);
@@ -70,7 +75,7 @@ export default function DashboardOverviewPage() {
     }
 
     fetchHistory();
-  }, []);
+  }, [user?.uid]);
 
   const calculateProgress = (doc: DocumentHistory) => {
     let completedSteps = 0;
@@ -177,24 +182,68 @@ export default function DashboardOverviewPage() {
             ) : (
               <div className="flex flex-col items-center w-full space-y-16 relative py-12">
                 {/* Path Units */}
-                {history.length > 0 && (
+                {history.length >= 0 && (
                   <div className="flex flex-col items-center w-full space-y-0 relative z-10">
-                    {/* Reverse history as before */}
-                    {[...history].reverse().map((doc, idx) => {
-                      const progress = calculateProgress(doc);
+                    {(() => {
+                      // Pad history to ensure exactly 20 nodes
+                      const paddedHistory = [...history];
+                      while (paddedHistory.length < 20) {
+                        paddedHistory.unshift({
+                           id: `dummy-${paddedHistory.length}`, 
+                           fileName: `Misi Misteri ${paddedHistory.length + 1}`, 
+                           createdAt: new Date().toISOString()
+                        });
+                      }
                       
-                      // Identify if it's the most recent node that isn't fully completed
-                      const isCurrentActiveNode = doc.id === history[0]?.id && progress < 100;
+                      const renderedNodes = paddedHistory.reverse();
+
+                      // Master Array for Mascots Configuration
+                      const mascots = [
+                        { name: "Yeti", video: "/pet/yeti/mascot-yeti.mp4", image: "/pet/yeti/yeti-base.jpeg", theme: "evoca1" },
+                        { name: "Stellar", video: "/pet/yeti/mascot-yeti.mp4", image: "/pet/yeti/yeti-second.jpeg", theme: "evoca2" },
+                        { name: "Astral", video: "/pet/yeti/mascot-yeti.mp4", image: "/pet/yeti/Yeti_remaja_bertambah_besar_lucu_a35b3b97c9.jpeg", theme: "evoca3" },
+                        { name: "Nova", video: "/pet/yeti/mascot-yeti.mp4", image: "/pet/yeti/yeti-base.jpeg", theme: "evoca4" }
+                      ] as const;
+
+                      // Flag variables to track progression and unlocking
+                      let foundFirstIncomplete = false;
+
+                      return renderedNodes.map((doc, idx) => {
+                         const rawProgress = calculateProgress(doc);
+                         
+                         // Determine real progression vs locked
+                         const isUnlocked = !foundFirstIncomplete;
+                         const isCurrentActiveNode = !foundFirstIncomplete && rawProgress < 100;
+                         if (rawProgress < 100) {
+                           foundFirstIncomplete = true;
+                         }
+
+                         // Reset progress to 0 visually if locked
+                         const progress = isUnlocked ? rawProgress : 0;
+                         const status = isUnlocked ? (progress === 100 ? "completed" : "current") : "locked";
 
                       // Units of 5
                       const unitIndex = Math.floor(idx / 5);
                       const positionInUnit = idx % 5;
                       const isMonsterNode = positionInUnit === 4;
 
-                      const THEMES: ("evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5")[] = [
-                        "evoca1", "evoca2", "evoca3", "evoca4", "evoca5"
-                      ];
-                      const theme = THEMES[unitIndex % THEMES.length];
+                      // Ensure unitIndex doesn't exceed our 4 mascot themes unexpectedly
+                      const safeUnitIndex = Math.min(unitIndex, mascots.length - 1);
+                      const blockMascot = mascots[safeUnitIndex];
+                      const theme = blockMascot.theme as "evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5";
+                      
+                      // Identify if the whole 5-quest block is unlocked.
+                      // A block is unlocked if it's the first block (unitIndex === 0) 
+                      // OR if the very last node of the PREVIOUS block was 100% completed.
+                      let isBlockUnlocked = false;
+                      if (unitIndex === 0) {
+                        isBlockUnlocked = true;
+                      } else {
+                        const previousBlockLastNodeIdx = (unitIndex * 5) - 1;
+                        if (renderedNodes[previousBlockLastNodeIdx]) {
+                          isBlockUnlocked = calculateProgress(renderedNodes[previousBlockLastNodeIdx]) === 100;
+                        }
+                      }
                       
                       const isFirstInUnit = positionInUnit === 0 && idx !== 0;
 
@@ -210,33 +259,46 @@ export default function DashboardOverviewPage() {
                           key={doc.id}
                           className={cn("relative w-full flex flex-col items-center py-2", isFirstInUnit && "mt-12")}
                         >
-                          {/* Monster Mascot - Placed at peak of the curve (inside the half circle) */}
+                          {/* Mascot - Placed only once per 5 quests (centered vertically across the 5 quests, which is position 2) */}
                           {positionInUnit === 2 && (
                             <div
                               className={cn(
-                                "absolute top-0 md:top-1/2 -translate-y-1/2 z-0",
-                                isUnitEven ? "right-1/2 mr-14 md:mr-16" : "left-1/2 ml-14 md:ml-16"
-                              )}
+                                "absolute top-1/2 -translate-y-1/2 z-0",
+                                // Place mascot significantly far to the left or right, at the peak of the curve's height
+                                isUnitEven ? "right-1/2 mr-20 md:mr-28" : "left-1/2 ml-20 md:ml-28"
+                              )}    
                             >
                               <div 
-                                className="relative w-32 h-32 md:w-40 md:h-40 group pointer-events-auto cursor-pointer"
+                                className="relative w-32 h-32 md:w-36 md:h-36 group pointer-events-auto cursor-pointer"
                                 onMouseEnter={triggerMotivation}
                               >
-                                <video
-                                  src="/animations/mascot-yeti.mp4"
-                                  autoPlay
-                                  loop
-                                  muted
-                                  playsInline
-                                  className="w-full h-full object-contain translate-y-2 pointer-events-none mix-blend-multiply hover-wave"
-                                />
-                                {/* Speech Bubble Component */}
-                                <div className="absolute -top-14 left-1/2 w-max max-w-[200px] md:max-w-[250px] -translate-x-1/2 bg-white/95 backdrop-blur-md px-5 py-3 rounded-3xl border border-stone-100 shadow-2xl ring-1 ring-black/5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 ease-out translate-y-4 group-hover:translate-y-0 scale-90 group-hover:scale-100 origin-bottom z-50">
-                                  <p className="text-[11px] md:text-xs font-black text-stone-700 text-center leading-relaxed">
-                                    {mascotQuote}
-                                  </p>
-                                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-stone-100 rotate-45" />
-                                </div>
+                                {/* Conditionally Render Video vs Grayscale Image */}
+                                {isBlockUnlocked ? (
+                                   <video
+                                      src={blockMascot.video}
+                                      autoPlay
+                                      loop
+                                      muted
+                                      playsInline
+                                      className="w-full h-full object-contain pointer-events-none mix-blend-multiply hover-wave"
+                                   />
+                                ) : (
+                                   <img
+                                      src={blockMascot.image}
+                                      alt={`Locked Mascot ${blockMascot.name}`}
+                                      className="w-full h-full object-contain pointer-events-none mix-blend-multiply grayscale opacity-60"
+                                   />
+                                )}
+                                
+                                {/* Speech Bubble Component (Only for Unlocked Mascots) */}
+                                {isBlockUnlocked && (
+                                   <div className="absolute -top-6 left-1/2 w-max max-w-[200px] md:max-w-[250px] -translate-x-1/2 bg-white/95 backdrop-blur-md px-5 py-3 rounded-3xl border border-stone-100 shadow-2xl ring-1 ring-black/5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 ease-out -translate-y-2 group-hover:-translate-y-6 scale-90 group-hover:scale-100 origin-bottom z-50">
+                                     <p className="text-[11px] md:text-xs font-black text-stone-700 text-center leading-relaxed">
+                                       {mascotQuote}
+                                     </p>
+                                     <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-stone-100 rotate-45" />
+                                   </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -253,8 +315,12 @@ export default function DashboardOverviewPage() {
                               progress={progress}
                               title={doc.metadata?.title || doc.fileName}
                               icon={BookOpen}
-                              status={progress === 100 ? "completed" : "current"}
-                              href={`/ai-reader/${doc.id}?theme=${theme}`}
+                              status={status}
+                              href={
+                                isUnlocked 
+                                  ? (doc.id.startsWith("dummy-") ? "/dashboard/new" : `/ai-reader/${doc.id}?theme=${theme}`)
+                                  : "#"
+                              }
                               specialType={isMonsterNode ? "monster" : "chest"}
                               isTooltipVisible={isCurrentActiveNode}
                               theme={theme}
@@ -262,39 +328,10 @@ export default function DashboardOverviewPage() {
                           </div>
                         </div>
                       );
-                    })}
+                    })
+                    })()}
                   </div>
                 )}
-
-                {/* Progression/Unlock Logic for 'New Mission' */}
-                {(() => {
-                  const lastDoc = history[0]; // history[0] is newest in original array
-                  const isLastComplete =
-                    history.length === 0 || calculateProgress(lastDoc) === 100;
-                  const nextIdx = history.length;
-                  const offsets: ("center" | "right" | "center" | "left")[] = [
-                    "center",
-                    "right",
-                    "center",
-                    "left",
-                  ];
-                  const offset = offsets[nextIdx % 4];
-
-                  return (
-                    <div className="pt-24 scale-110">
-                      <PathNode
-                        type="new"
-                        progress={0}
-                        title="Misi Baru"
-                        icon={Plus}
-                        status={isLastComplete ? "current" : "locked"}
-                        sideOffset={offset}
-                        href="/dashboard/new"
-                        theme="evoca1"
-                      />
-                    </div>
-                  );
-                })()}
               </div>
             )}
           </div>
@@ -307,7 +344,7 @@ export default function DashboardOverviewPage() {
             {/* Mascot Video */}
             <div className="w-48 h-48 mx-auto relative mb-4">
               <video
-                src="/animations/mascot-yeti.mp4"
+                src="/pet/yeti/mascot-yeti.mp4"
                 autoPlay
                 loop
                 muted

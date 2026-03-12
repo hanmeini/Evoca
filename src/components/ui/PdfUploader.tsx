@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { useAuth } from "@/src/context/AuthContext";
+
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
 export function PdfUploader() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -57,12 +60,18 @@ export function PdfUploader() {
   const handleUpload = async () => {
     if (!file) return;
 
+    if (!user?.uid) {
+      setError("You must be logged in to upload a document.");
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("userId", user.uid);
 
       const response = await fetch("/api/upload-pdf", {
         method: "POST",

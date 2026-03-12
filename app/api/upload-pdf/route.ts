@@ -11,9 +11,14 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const userId = formData.get("userId") as string | null;
     
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
     }
 
     // 1. Convert File to Buffer
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
     const docId = uuidv4();
     const newDoc = {
       id: docId,
+      userId: userId,
       fileName: file.name,
       fileSize: file.size,
       fileUrl: fileUrl,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
+import * as googleTTS from "google-tts-api";
 
 export const maxDuration = 60;
 
@@ -11,35 +11,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // Select different voices for Speaker A and Speaker B
-    // You can replace these with your preferred ElevenLabs Voice IDs
-    // A: Female Voice (Bella), B: Male Voice (Antoni)
-    const voiceId = speakerId === "A" 
-      ? "EXAVITQu4vr4xnSDxMaL" // Bella (American, Soft Female)
-      : "ErXwobaYiN019PkySvjV"; // Antoni (American, Well-rounded Male)
-
-    const elevenlabs = new ElevenLabsClient({
-      apiKey: process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY,
+    // A: Bahasa Indonesia, B: Bahasa Melayu (to create a distinct second speaker voice)
+    const voiceLang = speakerId === "A" ? "id" : "ms";
+    
+    // google-tts-api handles chunking automatically for texts > 200 chars
+    const base64AudioArray = await googleTTS.getAllAudioBase64(text, {
+      lang: voiceLang,
+      slow: false,
+      host: 'https://translate.google.com',
+      splitPunct: ',.?',
     });
 
-    const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
-      text: text,
-      modelId: "eleven_multilingual_v2",
-      outputFormat: "mp3_44100_128",
+    // Combine all base64 chunks into a single ArrayBuffer/Buffer
+    const audioBuffers = base64AudioArray.map((chunk) => {
+        return Buffer.from(chunk.base64, 'base64');
     });
+    const finalAudioBuffer = Buffer.concat(audioBuffers);
 
-    // Convert string/stream response to buffer so we can send it as audio/mpeg
-    const chunks: Buffer[] = [];
-    for await (const chunk of audioStream as unknown as AsyncIterable<Uint8Array>) {
-        chunks.push(Buffer.from(chunk));
-    }
-    const audioBuffer = Buffer.concat(chunks);
-
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(finalAudioBuffer, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
-        "Content-Length": audioBuffer.length.toString(),
+        "Content-Length": finalAudioBuffer.length.toString(),
       },
     });
   } catch (error: unknown) {

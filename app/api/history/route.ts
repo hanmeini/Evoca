@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/src/lib/firebase-admin";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
     const q = adminDb.collection("documents")
+      .where("userId", "==", userId)
       .orderBy("createdAt", "desc")
       .limit(10);
     
