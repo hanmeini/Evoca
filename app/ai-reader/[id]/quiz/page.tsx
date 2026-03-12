@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils";
+import { useAuth } from "@/src/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 type QuizItem = {
   question: string;
@@ -35,6 +37,10 @@ export default function AiReaderQuizPage({
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [xpAwarded, setXpAwarded] = useState(0);
+
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     async function loadQuiz() {
@@ -75,13 +81,27 @@ export default function AiReaderQuizPage({
     }
   };
 
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     if (currentQuestion < quizData.length - 1) {
       setCurrentQuestion((c) => c + 1);
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
       setIsFinished(true);
+      if (user) {
+        try {
+          const earnedXP = score * 10;
+          setXpAwarded(earnedXP);
+          await fetch('/api/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documentId: id, stage: "quiz", userId: user.uid, xpGained: earnedXP }),
+          });
+          router.refresh();
+        } catch (e) {
+          console.error(e);
+        }
+      }
     }
   };
 
@@ -134,9 +154,21 @@ export default function AiReaderQuizPage({
             <h2 className="font-serif text-3xl md:text-4xl font-black text-amber-950 mb-4">
               Kuis Selesai!
             </h2>
-            <p className="text-amber-800/80 font-bold mb-10 max-w-sm mx-auto text-lg leading-relaxed">
+            <p className="text-amber-800/80 font-bold mb-6 max-w-sm mx-auto text-lg leading-relaxed">
               Luar biasa! Anda telah menyelesaikan kuis ini.
             </p>
+
+            {/* Gamification Success Badge */}
+            <div className="flex justify-center mb-10">
+              <div className="bg-[#ffc800] text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 border-[#e5a500] flex items-center gap-3 transform scale-110 animate-in zoom-in duration-500">
+                 <span className="text-xl">🎉</span>
+                 <div className="flex flex-col items-start leading-none">
+                   <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
+                   <p className="font-bold text-[10px] text-amber-800 font-sans">+{xpAwarded} XP Diraih</p>
+                 </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <button
                 onClick={() => {
@@ -154,7 +186,7 @@ export default function AiReaderQuizPage({
                 href={`/ai-reader/${id}`}
                 className="inline-flex h-14 items-center justify-center rounded-full bg-[#58cc02] px-10 py-2 text-lg font-bold text-white shadow-xl transition-transform hover:-translate-y-1 border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 uppercase tracking-widest"
               >
-                Selesai ✨
+                Lanjut ke Peta ✨
               </Link>
             </div>
           </div>

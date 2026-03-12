@@ -13,6 +13,8 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/src/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { cn } from "@/src/lib/utils";
 import { use } from "react";
 
@@ -34,8 +36,12 @@ export default function AiReaderPodcastPage({
 
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [trackProgress, setTrackProgress] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [userXP, setUserXP] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number | null>(null);
+  const { user } = useAuth();
+  const router = useRouter();
 
   // Audio Preloading Cache
   const audioCache = useRef<Record<number, string>>({});
@@ -130,14 +136,35 @@ export default function AiReaderPodcastPage({
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
 
-        audio.onended = () => {
+        audio.onended = async () => {
           setTrackProgress(0);
           if (animationRef.current) cancelAnimationFrame(animationRef.current);
           
-          // Introduce a natural conversational pause (e.g. 400ms) before the next speaker
-          setTimeout(() => {
-            setCurrentLineIndex((prev) => prev + 1);
-          }, 400);
+          if (currentLineIndex >= script.length - 1) {
+            setIsPlaying(false);
+            if (!isCompleted) {
+              setIsCompleted(true);
+              setUserXP((prev) => prev + 20);
+              const currentUser = user;
+              if (currentUser) {
+                try {
+                  await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentId: id, stage: "podcast", userId: currentUser.uid, xpGained: 20 }),
+                  });
+                  router.refresh();
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+            }
+          } else {
+            // Introduce a natural conversational pause (e.g. 400ms) before the next speaker
+            setTimeout(() => {
+              setCurrentLineIndex((prev) => prev + 1);
+            }, 400);
+          }
         };
 
         const smoothlyUpdateProgress = () => {
@@ -276,45 +303,66 @@ export default function AiReaderPodcastPage({
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <button className="w-12 h-12 bg-white/50 text-indigo-700 rounded-2xl flex items-center justify-center hover:bg-white hover:shadow-md transition-all">
-                  <Volume2 className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="flex items-center gap-4 md:gap-6 flex-1 justify-center">
-                <button
-                  onClick={() => {
-                    setTrackProgress(0);
-                    setCurrentLineIndex(Math.max(0, currentLineIndex - 1));
-                  }}
-                  className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
-                >
-                  <Rewind className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={togglePlayback}
-                  className="w-20 h-20 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-indigo-700 hover:shadow-xl transition-all shadow-lg border-4 border-white"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-8 h-8 fill-current" />
-                  ) : (
-                    <Play className="w-8 h-8 fill-current translate-x-0.5" />
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setTrackProgress(0);
-                    setCurrentLineIndex(
-                      Math.min(script.length - 1, currentLineIndex + 1),
-                    );
-                  }}
-                  className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
-                >
-                  <FastForward className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="w-12" />
+            <div className="flex items-center justify-between min-h-[5rem]">
+              {isCompleted ? (
+                <div className="w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                  <div className="bg-[#ffc800] text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 border-[#e5a500] flex items-center gap-3 mb-6 transform scale-110">
+                     <span className="text-xl">🎉</span>
+                     <div className="flex flex-col items-start leading-none">
+                       <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
+                       <p className="font-bold text-[10px] text-amber-800 font-sans">+20 XP Diraih</p>
+                     </div>
+                  </div>
+                  <Link
+                    href={`/ai-reader/${id}`}
+                    className="bg-[#58cc02] hover:bg-[#46a302] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest text-sm flex items-center gap-2 group relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                    Lanjut ke Peta <ChevronLeft className="w-5 h-5 rotate-180 stroke-[3px]" />
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-6">
+                    <button className="w-12 h-12 bg-white/50 text-indigo-700 rounded-2xl flex items-center justify-center hover:bg-white hover:shadow-md transition-all">
+                      <Volume2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4 md:gap-6 flex-1 justify-center">
+                    <button
+                      onClick={() => {
+                        setTrackProgress(0);
+                        setCurrentLineIndex(Math.max(0, currentLineIndex - 1));
+                      }}
+                      className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
+                    >
+                      <Rewind className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={togglePlayback}
+                      className="w-20 h-20 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-indigo-700 hover:shadow-xl transition-all shadow-lg border-4 border-white"
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-8 h-8 fill-current" />
+                      ) : (
+                        <Play className="w-8 h-8 fill-current translate-x-0.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTrackProgress(0);
+                        setCurrentLineIndex(
+                          Math.min(script.length - 1, currentLineIndex + 1),
+                        );
+                      }}
+                      className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
+                    >
+                      <FastForward className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="w-12" />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -365,15 +413,17 @@ export default function AiReaderPodcastPage({
           })}
         </div>
 
-        {/* Finish Button */}
-        <div className="mt-12 flex justify-center pb-20">
-          <Link
-            href={`/ai-reader/${id}`}
-            className="bg-[#58cc02] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest text-sm"
-          >
-            Selesaikan Tahap 3 ✨
-          </Link>
-        </div>
+        {/* Finish Button - Hidden when completed so user uses main CTA in player */}
+        {!isCompleted && (
+          <div className="mt-12 flex justify-center pb-20">
+            <Link
+              href={`/ai-reader/${id}`}
+              className="bg-stone-300 text-stone-500 font-black px-12 py-4 rounded-2xl shadow-sm border-b-8 border-stone-400/50 uppercase tracking-widest text-sm opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              Dengarkan sampai habis ✨
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

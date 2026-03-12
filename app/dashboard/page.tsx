@@ -5,6 +5,7 @@ import { cn } from "@/src/lib/utils";
 import { PathNode } from "@/src/components/reader/PathNode";
 import { Bell, Sparkles, Search, Plus, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/src/context/AuthContext";
 
 interface DocumentHistory {
   id: string;
@@ -37,6 +38,21 @@ interface DocumentHistory {
 export default function DashboardOverviewPage() {
   const [history, setHistory] = useState<DocumentHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [mascotQuote, setMascotQuote] = useState("Halo!");
+
+  const triggerMotivation = () => {
+    const name = user?.displayName ? user.displayName.split(" ")[0] : "Sobat Evoca";
+    const quotes = [
+      `Semangat belajarnya, ${name}!`,
+      "Kamu pasti bisa!",
+      `Teruslah belajar, ${name}!`,
+      "Jangan menyerah!",
+      `Kamu hebat, ${name}!`
+    ];
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    setMascotQuote(randomQuote);
+  };
 
   useEffect(() => {
     async function fetchHistory() {
@@ -66,21 +82,37 @@ export default function DashboardOverviewPage() {
   };
 
   return (
-    <div className="bg-[#f7f7f7] min-h-screen pb-32 font-sans overflow-x-hidden">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-stone-200 px-4 md:px-8 py-4">
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes evoca-wave {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-8deg); }
+          75% { transform: rotate(8deg); }
+        }
+        .hover-wave:hover {
+          animation: evoca-wave 1s ease-in-out infinite;
+          transform-origin: bottom center;
+        }
+        :root {
+          --path-scale: 1;
+        }
+        @media (max-width: 768px) {
+          :root {
+            --path-scale: 0.85;
+          }
+        }
+      `}} />
+      <div className="bg-white min-h-screen pb-32 font-sans">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-stone-200 px-4 md:px-8 py-4">
         <div className="max-w-[1240px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-lg border-b-4 border-indigo-700">
-              🧑🏽‍🦱
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-sm font-black text-stone-900 leading-none">
-                EVOCA
-              </h1>
-              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mt-1">
-                Adventure Mode
-              </p>
+            <div className="w-10 h-10 relative group-hover:rotate-6 transition-transform">
+              <img 
+                src="/favicon.ico" 
+                alt="Evoca Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
@@ -159,6 +191,13 @@ export default function DashboardOverviewPage() {
                       const positionInUnit = idx % 5;
                       const isMonsterNode = positionInUnit === 4;
 
+                      const THEMES: ("evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5")[] = [
+                        "evoca1", "evoca2", "evoca3", "evoca4", "evoca5"
+                      ];
+                      const theme = THEMES[unitIndex % THEMES.length];
+                      
+                      const isFirstInUnit = positionInUnit === 0 && idx !== 0;
+
                       // Stronger Curved Offset Logic - Sine wave like pattern
                       const isUnitEven = unitIndex % 2 === 0;
                       const baseOffsets = [0, 60, 95, 60, 0];
@@ -169,7 +208,7 @@ export default function DashboardOverviewPage() {
                       return (
                         <div
                           key={doc.id}
-                          className="relative w-full flex flex-col items-center py-2"
+                          className={cn("relative w-full flex flex-col items-center py-2", isFirstInUnit && "mt-12")}
                         >
                           {/* Monster Mascot - Placed at peak of the curve (inside the half circle) */}
                           {positionInUnit === 2 && (
@@ -179,17 +218,24 @@ export default function DashboardOverviewPage() {
                                 isUnitEven ? "right-1/2 mr-14 md:mr-16" : "left-1/2 ml-14 md:ml-16"
                               )}
                             >
-                              <div className="relative w-32 h-32 md:w-40 md:h-40 group pointer-events-auto">
+                              <div 
+                                className="relative w-32 h-32 md:w-40 md:h-40 group pointer-events-auto cursor-pointer"
+                                onMouseEnter={triggerMotivation}
+                              >
                                 <video
                                   src="/animations/mascot-yeti.mp4"
                                   autoPlay
                                   loop
                                   muted
                                   playsInline
-                                  className="w-full h-full object-contain drop-shadow-2xl translate-y-2 pointer-events-none"
+                                  className="w-full h-full object-contain translate-y-2 pointer-events-none mix-blend-multiply hover-wave"
                                 />
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-xl border border-stone-200 shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 origin-bottom">
-                                  <span className="text-[10px] font-black text-[#8b5cf6] uppercase tracking-tighter">YETI BOSS</span>
+                                {/* Speech Bubble Component */}
+                                <div className="absolute -top-14 left-1/2 w-max max-w-[200px] md:max-w-[250px] -translate-x-1/2 bg-white/95 backdrop-blur-md px-5 py-3 rounded-3xl border border-stone-100 shadow-2xl ring-1 ring-black/5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-500 ease-out translate-y-4 group-hover:translate-y-0 scale-90 group-hover:scale-100 origin-bottom z-50">
+                                  <p className="text-[11px] md:text-xs font-black text-stone-700 text-center leading-relaxed">
+                                    {mascotQuote}
+                                  </p>
+                                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-stone-100 rotate-45" />
                                 </div>
                               </div>
                             </div>
@@ -198,7 +244,7 @@ export default function DashboardOverviewPage() {
                           <div 
                             className="relative z-10"
                             style={{ 
-                              transform: `translateX(${xOffset}px)`,
+                              transform: `translateX(calc(var(--path-scale, 1) * ${xOffset}px))`,
                               transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' 
                             }}
                           >
@@ -208,9 +254,10 @@ export default function DashboardOverviewPage() {
                               title={doc.metadata?.title || doc.fileName}
                               icon={BookOpen}
                               status={progress === 100 ? "completed" : "current"}
-                              href={`/ai-reader/${doc.id}`}
+                              href={`/ai-reader/${doc.id}?theme=${theme}`}
                               specialType={isMonsterNode ? "monster" : "chest"}
                               isTooltipVisible={isCurrentActiveNode}
+                              theme={theme}
                             />
                           </div>
                         </div>
@@ -243,6 +290,7 @@ export default function DashboardOverviewPage() {
                         status={isLastComplete ? "current" : "locked"}
                         sideOffset={offset}
                         href="/dashboard/new"
+                        theme="evoca1"
                       />
                     </div>
                   );
@@ -255,7 +303,7 @@ export default function DashboardOverviewPage() {
         {/* Right Sidebar - Desktop Only */}
         <div className="hidden lg:flex flex-col gap-6 ">
           {/* Streak Card - Video Mascot Edition */}
-          <div className="bg-white rounded-[2rem] p-6 text-center">
+          <div className="bg-white border-2 border-stone-200 rounded-[2rem] p-6 text-center">
             {/* Mascot Video */}
             <div className="w-48 h-48 mx-auto relative mb-4">
               <video
@@ -264,7 +312,7 @@ export default function DashboardOverviewPage() {
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-contain mix-blend-multiply"
+                className="w-full h-full object-contain mix-blend-multiply hover-wave"
               />
             </div>
 
@@ -355,7 +403,7 @@ export default function DashboardOverviewPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+              <div className="p-4 bg-[#f3f4f6] rounded-2xl border border-stone-100">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">⚡</span>
@@ -363,12 +411,12 @@ export default function DashboardOverviewPage() {
                       Dapatkan 10 XP
                     </span>
                   </div>
-                  <span className="text-[10px] font-black text-orange-600">
+                  <span className="text-[10px] font-black text-[#7c3aed]">
                     10 / 10
                   </span>
                 </div>
                 <div className="w-full h-3 bg-stone-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-400 w-full shadow-inner" />
+                  <div className="h-full bg-[#8b5cf6] w-full shadow-inner" />
                 </div>
               </div>
             </div>
@@ -391,5 +439,6 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

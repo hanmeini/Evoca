@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, NotebookTabs } from "lucide-react";
 import { use } from "react";
+import { THEMES } from "@/src/components/reader/PathNode";
 
 export default function AiReaderLayout({
   children,
@@ -14,6 +15,15 @@ export default function AiReaderLayout({
 }) {
   const { id } = use(params);
   const [docTitle, setDocTitle] = useState("Loading...");
+  const [headerColor, setHeaderColor] = useState("");
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const t = searchParams.get("theme") as keyof typeof THEMES | null;
+    if (t && THEMES[t]) {
+      setHeaderColor(THEMES[t].bgValue);
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchDoc() {
@@ -35,8 +45,11 @@ export default function AiReaderLayout({
 
   return (
     <div className="flex-1 flex flex-col w-full bg-[#f7f7f7] min-h-screen">
-      {/* Duolingo-style Green Header */}
-      <header className="sticky top-0 z-40 bg-[#58cc02] text-white shadow-md">
+      {/* Evoca Dynamic Header */}
+      <header 
+        className={`sticky top-0 z-40 text-white shadow-md transition-colors duration-500 ${!headerColor ? "bg-gradient-to-r from-purple-600 to-blue-500" : ""}`}
+        style={headerColor ? { backgroundColor: headerColor } : {}}
+      >
         <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -58,8 +71,8 @@ export default function AiReaderLayout({
 
           <button className="bg-white/20 hover:bg-white/30 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
             <NotebookTabs className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="hidden sm:inline">Buku Panduan</span>
-            <span className="sm:hidden">Panduan</span>
+            <span className="hidden sm:inline">Lihat PDF Asli</span>
+            <span className="sm:hidden">PDF Asli</span>
           </button>
         </div>
       </header>

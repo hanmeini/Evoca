@@ -23,7 +23,7 @@ export default function NewMissionPage() {
             <ArrowLeft className="w-6 h-6 stroke-[3px]" />
           </Link>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#58cc02] mb-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#7c3aed] mb-1">
               Misi Baru
             </p>
             <h1 className="text-3xl font-black text-stone-900 leading-tight">
@@ -35,7 +35,7 @@ export default function NewMissionPage() {
 
       <div className="max-w-3xl mx-auto px-6 pt-12">
         <div className="grid md:grid-cols-3 gap-4 mb-12">
-          <div className="bg-white p-6 rounded-3xl border-2 border-stone-100 shadow-sm flex flex-col items-center text-center group hover:border-[#58cc02] transition-colors cursor-pointer">
+          <div className="bg-white p-6 rounded-3xl border-2 border-stone-100 shadow-sm flex flex-col items-center text-center group hover:border-[#8b5cf6] transition-colors cursor-pointer">
             <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <FileText className="w-7 h-7" />
             </div>
@@ -73,11 +73,11 @@ export default function NewMissionPage() {
         </div>
 
         <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-stone-200 border border-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#58cc02]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#8b5cf6]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 bg-[#58cc02] rounded-2xl flex items-center justify-center shadow-lg border-b-4 border-[#46a302]">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-[#ddd6fe] rounded-2xl flex items-center justify-center shadow-lg border-b-4 border-[#8b5cf6]">
+              <Sparkles className="w-6 h-6 text-[#7c3aed]" />
             </div>
             <h2 className="text-xl font-black text-stone-900">
               Upload Materimu

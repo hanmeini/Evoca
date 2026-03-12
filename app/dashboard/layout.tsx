@@ -46,13 +46,13 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] flex">
-      {/* Sidebar - Premium Design */}
+    <div className="min-h-screen bg-[#f7f7f7] flex flex-col md:flex-row">
+      {/* Sidebar - Desktop */}
       <motion.aside
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "circOut" }}
-        className="w-72 bg-white border-r-2 border-stone-200 flex flex-col fixed inset-y-0 left-0 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+        className="hidden md:flex w-72 bg-white border-r-2 border-stone-200 flex-col fixed inset-y-0 left-0 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
       >
         <div className="p-8">
           <Link
@@ -182,10 +182,11 @@ export default function DashboardLayout({
       </motion.aside>
 
       {/* Main Content Area - Refined Spacing */}
-      <main className="flex-1 ml-72 min-h-screen relative">
+      <main className="flex-1 md:ml-72 pb-24 md:pb-0 min-h-screen relative">
         <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
-        <div className="relative z-10 p-4 md:p-8">{children}</div>
+        <div className="relative z-10 px-0 md:p-8">{children}</div>
       </main>
+
     </div>
   );
 }

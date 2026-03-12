@@ -1,6 +1,7 @@
 import { FileText, Cpu, Clock, ChevronLeft } from "lucide-react";
 import { adminDb } from "@/src/lib/firebase-admin";
 import Link from "next/link";
+import { SummaryFinishButton } from "@/src/components/reader/SummaryFinishButton";
 
 export default async function AiReaderSummaryPage({
   params,
@@ -114,13 +115,8 @@ export default async function AiReaderSummaryPage({
         </div>
 
         {/* Start Mission Button */}
-        <div className="mt-12 flex justify-center">
-          <Link
-            href={`/ai-reader/${id}`}
-            className="bg-[#58cc02] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest text-sm"
-          >
-            Selesaikan Tahap 1 ✨
-          </Link>
+        <div className="mt-12 flex justify-center pb-8">
+          <SummaryFinishButton documentId={id} />
         </div>
       </div>
     </div>

@@ -15,7 +15,16 @@ interface PathNodeProps {
   href: string;
   specialType?: "monster" | "chest";
   isTooltipVisible?: boolean;
+  theme?: "evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5";
 }
+
+export const THEMES = {
+  evoca1: { bg: "bg-[#ddd6fe]", border: "border-[#8b5cf6]", ring: "#8b5cf6", text: "text-[#7c3aed]", bubble: "border-[#ddd6fe] text-[#7c3aed]", bgValue: "#8b5cf6" }, // Pastel Violet
+  evoca2: { bg: "bg-[#c7d2fe]", border: "border-[#6366f1]", ring: "#6366f1", text: "text-[#4f46e5]", bubble: "border-[#c7d2fe] text-[#4f46e5]", bgValue: "#6366f1" }, // Pastel Indigo
+  evoca3: { bg: "bg-[#bfdbfe]", border: "border-[#3b82f6]", ring: "#3b82f6", text: "text-[#2563eb]", bubble: "border-[#bfdbfe] text-[#2563eb]", bgValue: "#3b82f6" }, // Pastel Blue
+  evoca4: { bg: "bg-[#f5d0fe]", border: "border-[#d946ef]", ring: "#d946ef", text: "text-[#c026d3]", bubble: "border-[#f5d0fe] text-[#c026d3]", bgValue: "#d946ef" }, // Pastel Purple/Fuchsia
+  evoca5: { bg: "bg-[#bae6fd]", border: "border-[#0ea5e9]", ring: "#0ea5e9", text: "text-[#0284c7]", bubble: "border-[#bae6fd] text-[#0284c7]", bgValue: "#0ea5e9" }, // Pastel Sky Blue
+};
 
 export function PathNode({
   type,
@@ -27,9 +36,10 @@ export function PathNode({
   href,
   specialType,
   isTooltipVisible = true,
+  theme = "evoca1",
 }: PathNodeProps) {
   // SVG Circle calculations to perfectly wrap the w-16 h-16 (64px) button
-  const stroke = 6;
+  const stroke = 8;
   const radius = 35;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -38,6 +48,7 @@ export function PathNode({
   const isLocked = status === "locked";
   const isCompleted = status === "completed";
   const isCurrent = status === "current";
+  const t = THEMES[theme];
 
   const containerClasses = cn(
     "relative flex flex-col items-center group transition-all duration-300",
@@ -48,12 +59,12 @@ export function PathNode({
   const circleClasses = cn(
     "relative flex items-center justify-center w-16 h-16 rounded-full transition-all duration-300 z-10",
     isLocked
-      ? "bg-stone-100 text-stone-200"
-      : "bg-white text-[#8b5cf6] shadow-xl border-b-[5px] border-stone-200 ring-[6px] ring-white/20",
-    isNew && "bg-[#a78bfa] text-white border-[#8b5cf6] ring-[#a78bfa]/20 animate-pulse",
+      ? "bg-stone-200 text-stone-400 border-b-[5px] border-stone-300 ring-[6px] ring-transparent"
+      : cn(t.bg, t.text, "border-b-[5px]", t.border, "ring-[6px] ring-white/20"),
+    isNew && "animate-pulse",
   );
 
-  const ringColor = isCompleted ? "#f97316" : "#8b5cf6";
+  const ringColor = isCompleted ? "#f97316" : t.ring;
 
   // Use dummy icons if special type is set
   const NodeIcon = specialType === "monster" ? Sword : specialType === "chest" ? Gift : Icon;
@@ -62,9 +73,15 @@ export function PathNode({
     <div className={containerClasses}>
       {/* "MULAI" Tooltip for Current Node (Hides on hover to make room for the info bubble) */}
       {isCurrent && !isNew && isTooltipVisible && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#8b5cf6] text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest animate-bounce z-30 shadow-lg group-hover:opacity-0 group-hover:-translate-y-2 transition-all duration-300">
+        <div 
+          className="absolute -top-10 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest animate-bounce z-30 shadow-lg group-hover:opacity-0 group-hover:-translate-y-2 transition-all duration-300"
+          style={{ backgroundColor: t.bgValue }}
+        >
           {specialType === "monster" ? "LAWAN!" : specialType === "chest" ? "BUKA!" : "MULAI"}
-          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#8b5cf6] rotate-45" />
+          <div 
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45" 
+            style={{ backgroundColor: t.bgValue }}
+          />
         </div>
       )}
 
@@ -76,7 +93,7 @@ export function PathNode({
             <svg viewBox="0 0 84 84" className="w-[84px] h-[84px] transform -rotate-90 drop-shadow-sm">
               {/* Background Track */}
               <circle
-                stroke="rgba(0,0,0,0.08)"
+                stroke="rgba(0,0,0,0.12)"
                 fill="transparent"
                 strokeWidth={stroke}
                 r={radius}
@@ -115,10 +132,10 @@ export function PathNode({
             >
               <NodeIcon
                 className={cn(
-                  "w-6 h-6",
+                  "w-6 h-6 outline-none",
                   isNew ? "stroke-[4px]" : "stroke-[3px]",
-                  specialType === "monster" && "text-red-500",
-                  specialType === "chest" && "text-amber-500",
+                  // When the node is just solid color, text handles icon color, except special ones if we want.
+                  // Default text implies text is white, so icons will be white.
                 )}
               />
             </div>
@@ -137,12 +154,12 @@ export function PathNode({
       <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ease-out translate-y-2 group-hover:translate-y-0">
         <div className={cn(
           "bg-white border-2 rounded-2xl p-4 shadow-xl relative text-center",
-          isLocked ? "border-stone-200" : "border-[#8b5cf6]"
+          isLocked ? "border-stone-200" : cn("border-2", t.bubble.split(" ")[0])
         )}>
           <div className="flex flex-col gap-1.5">
             <span className={cn(
               "text-[10px] font-black uppercase tracking-widest",
-              isLocked ? "text-stone-400" : "text-[#8b5cf6]"
+              isLocked ? "text-stone-400" : t.bubble.split(" ")[1]
             )}>
               {isLocked ? "Terkunci" : (specialType === "monster" ? "Tantangan Bos" : specialType === "chest" ? "Hadiah" : "Materi")}
             </span>
@@ -153,7 +170,7 @@ export function PathNode({
           {/* Triangle Pointer */}
           <div className={cn(
             "absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 bg-white rotate-45",
-            isLocked ? "border-stone-200" : "border-[#8b5cf6]"
+            isLocked ? "border-stone-200" : t.bubble.split(" ")[0]
           )} />
         </div>
       </div>
