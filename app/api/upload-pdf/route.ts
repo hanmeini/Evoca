@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const userId = formData.get("userId") as string | null;
-    
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const cloudinaryResponse = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          resource_type: "raw", 
+          resource_type: "raw",
           folder: "evoca-pdf",
           format: "pdf",
           public_id: `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`
@@ -43,11 +43,11 @@ export async function POST(req: NextRequest) {
     });
 
     const fileUrl = (cloudinaryResponse as { secure_url: string }).secure_url;
-    
+
     // 3. Extract text from PDF using pdf-parse
     // Polyfill DOMMatrix for pdfjs-dist
     if (typeof globalThis !== "undefined" && !("DOMMatrix" in globalThis)) {
-      (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = class DOMMatrix {};
+      (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = class DOMMatrix { };
     }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PDFParse } = require("pdf-parse");
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Summarize and Extract key topics via Gemini API
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
+
     const prompt = `Analyze the following document text and provide a concise JSON object. Please respond entirely in Bahasa Indonesia. Do not include markdown code block syntax. The JSON must exactly match this structure:
     {
       "title": "A short, descriptive title (in Bahasa Indonesia)",
@@ -73,20 +73,20 @@ export async function POST(req: NextRequest) {
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+      model: 'gemini-2.5-flash',
+      contents: prompt,
     });
-    
+
     const aiText = response.text || "{}";
     // clean up potential markdown codeblocks that Gemini sometimes returns
     const cleanJsonString = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
     let metadata = {};
-    
+
     try {
-       metadata = JSON.parse(cleanJsonString);
+      metadata = JSON.parse(cleanJsonString);
     } catch {
-       console.error("Failed to parse Gemini JSON:", cleanJsonString);
-       metadata = { title: file.name, summary: "Could not generate summary." };
+      console.error("Failed to parse Gemini JSON:", cleanJsonString);
+      metadata = { title: file.name, summary: "Could not generate summary." };
     }
 
     // 5. Store in Firebase Firestore

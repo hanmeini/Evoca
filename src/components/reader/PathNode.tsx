@@ -74,7 +74,7 @@ export function PathNode({
       {/* "MULAI" Tooltip for Current Node (Hides on hover to make room for the info bubble) */}
       {isCurrent && !isNew && isTooltipVisible && (
         <div 
-          className="absolute -top-10 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest animate-bounce z-30 shadow-lg group-hover:opacity-0 group-hover:-translate-y-2 transition-all duration-300"
+          className="absolute -top-10 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest animate-bounce z-[60] shadow-lg group-hover:opacity-0 group-hover:-translate-y-2 transition-all duration-300"
           style={{ backgroundColor: t.bgValue }}
         >
           {specialType === "monster" ? "LAWAN!" : specialType === "chest" ? "BUKA!" : "MULAI"}
@@ -151,25 +151,25 @@ export function PathNode({
       </div>
 
       {/* Hover Info Bubble Chat */}
-      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ease-out translate-y-2 group-hover:translate-y-0">
+      <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 min-w-[180px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100] ease-out translate-y-2 group-hover:translate-y-0">
         <div className={cn(
-          "bg-white border-2 rounded-2xl p-4 shadow-xl relative text-center",
-          isLocked ? "border-stone-200" : cn("border-2", t.bubble.split(" ")[0])
+          "bg-white border-2 rounded-[2rem] p-4 shadow-2xl relative text-center",
+          isLocked ? "border-stone-200 border-b-4" : cn("border-b-4", t.bubble.split(" ")[0])
         )}>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <span className={cn(
-              "text-[10px] font-black uppercase tracking-widest",
+              "text-[9px] font-bold uppercase tracking-[0.2em]",
               isLocked ? "text-stone-400" : t.bubble.split(" ")[1]
             )}>
               {isLocked ? "Terkunci" : (specialType === "monster" ? "Tantangan Bos" : specialType === "chest" ? "Hadiah" : "Materi")}
             </span>
-            <h3 className="text-sm font-bold text-stone-800 leading-tight">
+            <h3 className="text-sm font-black text-stone-800 leading-tight">
               {title}
             </h3>
           </div>
           {/* Triangle Pointer */}
           <div className={cn(
-            "absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-4 h-4 border-b-2 border-r-2 bg-white rotate-45",
+            "absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-4 h-4 border-b-4 border-r-2 bg-white rotate-45",
             isLocked ? "border-stone-200" : t.bubble.split(" ")[0]
           )} />
         </div>

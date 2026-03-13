@@ -16,6 +16,7 @@ export default function AiReaderLayout({
   const { id } = use(params);
   const [docTitle, setDocTitle] = useState("Loading...");
   const [headerColor, setHeaderColor] = useState("");
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -35,6 +36,7 @@ export default function AiReaderLayout({
           setDocTitle(
             data.metadata?.title || data.fileName || "Untitiled Document",
           );
+          setPdfUrl(data.fileUrl || null);
         }
       } catch (error) {
         console.error("Error fetching doc in layout:", error);
@@ -42,6 +44,14 @@ export default function AiReaderLayout({
     }
     fetchDoc();
   }, [id]);
+
+  const handleOpenPdf = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, "_blank");
+    } else {
+      alert("PDF aslinya tidak ditemukan.");
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col w-full bg-[#f7f7f7] min-h-screen">
@@ -69,7 +79,10 @@ export default function AiReaderLayout({
             </div>
           </div>
 
-          <button className="bg-white/20 hover:bg-white/30 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+          <button 
+            onClick={handleOpenPdf}
+            className="bg-white/20 hover:bg-white/30 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1"
+          >
             <NotebookTabs className="w-4 h-4 md:w-5 md:h-5" />
             <span className="hidden sm:inline">Lihat PDF Asli</span>
             <span className="sm:hidden">PDF Asli</span>
