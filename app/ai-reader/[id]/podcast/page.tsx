@@ -139,19 +139,19 @@ export default function AiReaderPodcastPage({
         audio.onended = async () => {
           setTrackProgress(0);
           if (animationRef.current) cancelAnimationFrame(animationRef.current);
-          
+
           if (currentLineIndex >= script.length - 1) {
             setIsPlaying(false);
             if (!isCompleted) {
               setIsCompleted(true);
-              setUserXP((prev) => prev + 20);
+              setUserXP((prev) => prev + 50);
               const currentUser = user;
               if (currentUser) {
                 try {
                   await fetch('/api/progress', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentId: id, stage: "podcast", userId: currentUser.uid, xpGained: 20 }),
+                    body: JSON.stringify({ documentId: id, stage: "podcast", userId: currentUser.uid, xpGained: 50 }),
                   });
                   router.refresh();
                 } catch (e) {
@@ -307,11 +307,11 @@ export default function AiReaderPodcastPage({
               {isCompleted ? (
                 <div className="w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                   <div className="bg-[#ffc800] text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 border-[#e5a500] flex items-center gap-3 mb-6 transform scale-110">
-                     <span className="text-xl">🎉</span>
-                     <div className="flex flex-col items-start leading-none">
-                       <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
-                       <p className="font-bold text-[10px] text-amber-800 font-sans">+20 XP Diraih</p>
-                     </div>
+                    <span className="text-xl">🎉</span>
+                    <div className="flex flex-col items-start leading-none">
+                      <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
+                      <p className="font-bold text-[10px] text-amber-800 font-sans">+50 XP Diraih</p>
+                    </div>
                   </div>
                   <Link
                     href={`/ai-reader/${id}`}

@@ -86,12 +86,17 @@ export function PdfUploader() {
 
       setUploadComplete(true);
 
-      // Navigate to the newly created document reader page
-      if (data.document && data.document.id) {
-        setTimeout(() => {
-          router.push(`/ai-reader/${data.document.id}`);
-        }, 1500); // short delay to show success icon
+      // Store in localStorage for quick access/persistence on refresh
+      if (data.document) {
+        const localHistory = JSON.parse(localStorage.getItem('evoca_roadmap_cache') || '[]');
+        const updatedHistory = [data.document, ...localHistory].slice(0, 20);
+        localStorage.setItem('evoca_roadmap_cache', JSON.stringify(updatedHistory));
       }
+
+      // Navigate to the Dashboard (Peta Misi) instead of individual page
+      setTimeout(() => {
+        router.push(`/dashboard`);
+      }, 1500); // short delay to show success icon
     } catch (err: unknown) {
       console.error(err);
       setError(

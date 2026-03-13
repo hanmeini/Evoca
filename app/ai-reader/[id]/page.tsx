@@ -90,11 +90,11 @@ function AiReaderPathContent({
     const t = THEMES[theme];
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div 
+        <div
           className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin"
           style={{ borderColor: t.bgValue, borderTopColor: "transparent" }}
         />
-        <p 
+        <p
           className="font-black uppercase tracking-widest text-xs"
           style={{ color: t.bgValue }}
         >

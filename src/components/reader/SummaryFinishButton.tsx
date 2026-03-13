@@ -14,7 +14,7 @@ export function SummaryFinishButton({ documentId }: { documentId: string }) {
   const handleComplete = async () => {
     if (!user) return;
     setLoading(true);
-    
+
     try {
       await fetch('/api/progress', {
         method: 'POST',
@@ -23,10 +23,10 @@ export function SummaryFinishButton({ documentId }: { documentId: string }) {
           documentId,
           stage: "summary",
           userId: user.uid,
-          xpGained: 10
+          xpGained: 50
         }),
       });
-      
+
       setCompleted(true);
       setTimeout(() => {
         router.push(`/ai-reader/${documentId}`);
@@ -41,7 +41,7 @@ export function SummaryFinishButton({ documentId }: { documentId: string }) {
   if (completed) {
     return (
       <div className="bg-[#ffc800] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#e5a500] uppercase tracking-widest text-sm flex items-center gap-2 transform transition-all duration-500 scale-105">
-        <CheckCircle2 className="w-6 h-6" /> Misi Selesai! +10 XP
+        <CheckCircle2 className="w-6 h-6" /> Misi Selesai! +50 XP
       </div>
     );
   }

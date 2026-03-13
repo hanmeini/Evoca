@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     const q = adminDb.collection("documents")
       .where("userId", "==", userId)
       .orderBy("createdAt", "desc")
-      .limit(10);
-    
+      .limit(20);
+
     const querySnapshot = await q.get();
     const history = querySnapshot.docs.map(doc => ({
       id: doc.id,

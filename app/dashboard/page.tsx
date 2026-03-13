@@ -33,12 +33,14 @@ interface DocumentHistory {
     title?: string;
     summary?: string;
   };
+  completedStages?: string[];
 }
 
 export default function DashboardOverviewPage() {
   const [history, setHistory] = useState<DocumentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [userStats, setUserStats] = useState({ totalXP: 0, streak: 1, gems: 500 });
   const [mascotQuote, setMascotQuote] = useState("Halo!");
 
   const triggerMotivation = () => {
@@ -55,35 +57,66 @@ export default function DashboardOverviewPage() {
   };
 
   useEffect(() => {
-    async function fetchHistory() {
+    // 1. Initial Load from LocalStorage Cache (Immediate UI)
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('evoca_roadmap_cache');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setHistory(parsed);
+          }
+        } catch (e) {
+          console.error("Roadmap cache error:", e);
+        }
+      }
+    }
+
+    async function fetchDashboard() {
       if (!user?.uid) {
         setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(`/api/history?userId=${user.uid}`);
-        const data = await response.json();
-        if (data.success && data.history) {
-          setHistory(data.history);
+        // Fetch History
+        const histRes = await fetch(`/api/history?userId=${user.uid}`);
+        const histData = await histRes.json();
+        if (histData.success && histData.history) {
+          setHistory(histData.history);
+          localStorage.setItem('evoca_roadmap_cache', JSON.stringify(histData.history));
+        }
+
+        // Fetch User Stats
+        const userRes = await fetch(`/api/user?userId=${user.uid}`);
+        const userData = await userRes.json();
+        if (userData.success && userData.data) {
+          setUserStats(userData.data);
         }
       } catch (error) {
-        console.error("Error fetching study history:", error);
+        console.error("Dashboard pull error:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchHistory();
+    fetchDashboard();
   }, [user?.uid]);
 
   const calculateProgress = (doc: DocumentHistory) => {
-    let completedSteps = 0;
-    if (doc.metadata?.summary) completedSteps += 1;
-    if (doc.quizData) completedSteps += 1;
-    if (doc.podcastScript) completedSteps += 1;
-    if (doc.chatHistory && doc.chatHistory.length > 0) completedSteps += 1;
-    return (completedSteps / 4) * 100;
+    const completedStages = doc.completedStages || [];
+    
+    // Step 1: Scanning the PDF (Automatic first step)
+    let completedSteps = 1;
+    
+    // Step 2-5: Stage completions
+    if (completedStages.includes("summary")) completedSteps += 1;
+    if (completedStages.includes("quiz")) completedSteps += 1;
+    if (completedStages.includes("podcast")) completedSteps += 1;
+    if (completedStages.includes("chat")) completedSteps += 1;
+
+    // Return progress based on 5 total steps
+    return (Math.min(completedSteps, 5) / 5) * 100;
   };
 
   return (
@@ -131,7 +164,16 @@ export default function DashboardOverviewPage() {
                 >
                   <span className="text-xl">🔥</span>
                   <span className="text-sm font-black text-[#ff9600] group-hover:scale-110 transition-transform">
-                    1
+                    {userStats.streak || 1}
+                  </span>
+                </div>
+                <div
+                  className="flex items-center gap-2 group cursor-pointer"
+                  title="Total XP"
+                >
+                  <span className="text-xl">⭐</span>
+                  <span className="text-sm font-black text-[#8b5cf6] group-hover:scale-110 transition-transform">
+                    {userStats.totalXP || 0}
                   </span>
                 </div>
                 <div
@@ -140,16 +182,7 @@ export default function DashboardOverviewPage() {
                 >
                   <span className="text-xl">💎</span>
                   <span className="text-sm font-black text-[#1cb0f6] group-hover:scale-110 transition-transform">
-                    505
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-2 group cursor-pointer"
-                  title="Nyawa"
-                >
-                  <span className="text-xl text-red-500">❤️</span>
-                  <span className="text-sm font-black text-[#ff4b4b] group-hover:scale-110 transition-transform">
-                    5
+                    {userStats.gems || 500}
                   </span>
                 </div>
               </div>
@@ -206,22 +239,36 @@ export default function DashboardOverviewPage() {
                           { name: "Nova", video: "/pet/yeti/mascot-yeti.mp4", image: "/pet/yeti/yeti-base.jpeg", theme: "evoca4" }
                         ] as const;
 
-                        // Flag variables to track progression and unlocking
-                        let foundFirstIncomplete = false;
+                        // Flag variables to track progression
+                        let currentFound = false;
 
                         return renderedNodes.map((doc, idx) => {
+                          const isDummy = doc.id.startsWith("dummy-");
                           const rawProgress = calculateProgress(doc);
 
-                          // Determine real progression vs locked
-                          const isUnlocked = !foundFirstIncomplete;
-                          const isCurrentActiveNode = !foundFirstIncomplete && rawProgress < 100;
-                          if (rawProgress < 100) {
-                            foundFirstIncomplete = true;
+                          let isUnlocked = !isDummy;
+                          
+                          // Determine the "Current" (active) node
+                          let status: "locked" | "current" | "completed" = isDummy ? "locked" : (rawProgress === 100 ? "completed" : "current");
+
+                          if (!currentFound) {
+                            if (isDummy) {
+                              isUnlocked = true;
+                              status = "current";
+                              currentFound = true;
+                            } else if (rawProgress < 100) {
+                              status = "current";
+                              currentFound = true;
+                            }
+                          } else {
+                            if (isDummy) {
+                              isUnlocked = false;
+                              status = "locked";
+                            }
                           }
 
-                          // Reset progress to 0 visually if locked
+                          const isCurrentActiveNode = status === "current";
                           const progress = isUnlocked ? rawProgress : 0;
-                          const status = isUnlocked ? (progress === 100 ? "completed" : "current") : "locked";
 
                           // Units of 5
                           const unitIndex = Math.floor(idx / 5);
