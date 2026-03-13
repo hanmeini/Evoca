@@ -182,7 +182,7 @@ export default function DashboardLayout({
       </motion.aside>
 
       {/* Main Content Area - Refined Spacing */}
-      <main className="flex-1 md:ml-72 pb-24 md:pb-0 min-h-screen relative">
+      <main className="flex-1 md:ml-72 md:pb-0 min-h-screen relative">
         <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-indigo-50/50 to-transparent pointer-events-none" />
         <div className="relative z-10 px-0 md:p-8">{children}</div>
       </main>
