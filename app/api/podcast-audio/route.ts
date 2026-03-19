@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Combine all base64 chunks into a single ArrayBuffer/Buffer
-    const audioBuffers = base64AudioArray.map((chunk) => {
+    const audioBuffers = base64AudioArray.map((chunk: { base64: string }) => {
         return Buffer.from(chunk.base64, 'base64');
     });
     const finalAudioBuffer = Buffer.concat(audioBuffers);

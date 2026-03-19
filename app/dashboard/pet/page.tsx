@@ -323,7 +323,7 @@ export default function PetPage() {
               </div>
               
               <p className="text-[10px] font-black text-indigo-900/40 uppercase tracking-tight leading-relaxed italic">
-                 "Dibutuhkan 50 XP lagi untuk naik ke peringkat #40"
+                &quot;Dibutuhkan 50 XP lagi untuk naik ke peringkat #40&quot;
               </p>
 
               <button className="w-full mt-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-200 shadow-sm border-b-4 hover:translate-y-0.5 transition-transform active:border-b-0">

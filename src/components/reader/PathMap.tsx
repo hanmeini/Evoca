@@ -11,10 +11,11 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { cn } from "@/src/lib/utils";
 import { THEMES } from "@/src/components/reader/PathNode";
 
-interface PathStage {
+export interface PathStage {
   id: number;
   type: "summary" | "quiz" | "podcast" | "chat";
   label: string;
@@ -54,10 +55,48 @@ export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: Pat
         </div>
       </div>
 
-      {/* Path line background */}
-      <div className="absolute top-24 bottom-0 w-3 bg-stone-200 left-1/2 -translate-x-1/2 z-0 rounded-full" />
+      {/* Path line background - starts right from header bottom */}
+      <div className="absolute top-[132px] bottom-0 w-3 bg-stone-200 left-1/2 -translate-x-1/2 z-0">
+        {/* Fill animation - precise and smooth */}
+        <motion.div 
+          initial={{ height: "0%" }}
+          animate={{ 
+            height: (() => {
+              const currentIndex = stages.findIndex(s => s.status === "current");
+              const completedCount = stages.filter(s => s.status === "completed").length;
+              
+              if (completedCount === stages.length) return "100%";
+              
+              // targetIndex defines which button center we should reach
+              const targetIndex = currentIndex !== -1 ? currentIndex : completedCount;
+              
+              /**
+               * CALCULATION LOGIC:
+               * 1. Header margin-bottom: 48px (mb-12)
+               * 2. First button center: 40px (half of 80px h-20)
+               * 3. Total offset for first button: 48 + 40 = 88px
+               * 4. Each subsequent button step: 80px (button) + 80px (gap/space-y-20) = 160px
+               */
+              return `calc(88px + ${targetIndex * 160}px)`;
+            })()
+          }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute top-0 left-0 w-full"
+          style={{ backgroundColor: t.bgValue }}
+        >
+          {/* Progress Tip Glow */}
+          <div 
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full blur-xl opacity-40 animate-pulse"
+            style={{ backgroundColor: t.bgValue }}
+          />
+          <div 
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-white/80 shadow-lg"
+            style={{ backgroundColor: t.bgValue }}
+          />
+        </motion.div>
+      </div>
 
-      <div className="space-y-16 w-full relative z-10">
+      <div className="space-y-20 w-full relative z-10 px-4">
         {stages.map((stage, index) => {
           const isEven = index % 2 === 0;
           const Icon = getIcon(stage.type);
@@ -74,24 +113,12 @@ export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: Pat
               <div className="flex-1" />
 
               <div className="relative group">
-                {/* Tooltip for current stage */}
-                {stage.status === "current" && (
-                  <div 
-                    className="absolute -top-12 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest animate-bounce whitespace-nowrap z-20"
-                    style={{ backgroundColor: t.bgValue }}
-                  >
-                    MULAI
-                    <div 
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45" 
-                      style={{ backgroundColor: t.bgValue }}
-                    />
-                  </div>
-                )}
+
 
                 <Link
                   href={stage.status === "locked" ? "#" : stage.href}
                   className={cn(
-                    "flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-[2.5rem] transition-all duration-300 relative border-b-[6px]",
+                    "flex items-center justify-center w-20 h-20 rounded-[2.5rem] transition-all duration-300 relative border-b-[6px]",
                     stage.status === "completed"
                       ? "bg-[#ffc800] border-[#e5a500] text-white"
                       : stage.status === "current"
@@ -116,7 +143,7 @@ export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: Pat
                 <div
                   className={cn(
                     "absolute top-1/2 -translate-y-1/2 font-black uppercase text-[10px] sm:text-[11px] tracking-widest leading-[1.4] w-max",
-                    isEven ? "left-[75px] sm:left-24 text-left" : "right-[75px] sm:right-24 text-right",
+                    isEven ? "left-[90px] sm:left-24 text-left" : "right-[90px] sm:right-24 text-right",
                     stage.status === "locked"
                       ? "text-stone-300"
                       : "text-stone-900",

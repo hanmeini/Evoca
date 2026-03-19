@@ -23,8 +23,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: userSnap.data() }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching user data:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

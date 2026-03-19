@@ -25,13 +25,12 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 2. Upload to Cloudinary (as raw file so we can store it)
+    // 2. Upload to Cloudinary
     const cloudinaryResponse = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          resource_type: "raw",
-          folder: "evoca-pdf",
-          format: "pdf",
+          resource_type: "auto", // Automatically handle PDF or Images
+          folder: "evoca-uploads",
           public_id: `${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`
         },
         (error, result) => {
@@ -44,52 +43,74 @@ export async function POST(req: NextRequest) {
 
     const fileUrl = (cloudinaryResponse as { secure_url: string }).secure_url;
 
-    // 3. Extract text from PDF using pdf-parse
-    // Polyfill DOMMatrix for pdfjs-dist
-    if (typeof globalThis !== "undefined" && !("DOMMatrix" in globalThis)) {
-      (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = class DOMMatrix { };
-    }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PDFParse } = require("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    const pdfData = await parser.getText();
-    const extractedText = pdfData.text;
-    await parser.destroy();
+    // 3. Multimodal Analysis with Gemini
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 4. Summarize and Extract key topics via Gemini API
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    // Convert to base64 for Gemini multimodal input
+    const base64Data = buffer.toString("base64");
 
-    const prompt = `Analyze the following document text and provide a concise JSON object. Please respond entirely in Bahasa Indonesia. Do not include markdown code block syntax. The JSON must exactly match this structure:
-    {
-      "title": "A short, descriptive title (in Bahasa Indonesia)",
-      "summary": "A 2-3 sentence summary of the entire document (in Bahasa Indonesia)",
-      "keyConcepts": ["Concept 1 (in Bahasa Indonesia)", "Concept 2", "Concept 3"],
-      "confidenceScore": 95,
-      "estimatedReadTimeMinutes": 10
-    }
-    
-    Document Text: 
-    ${extractedText.substring(0, 60000)} // Analyze up to first 60k chars for summary to save tokens
-    `;
+    const prompt = `Anda adalah asisten ahli pendidikan. Tolong baca dokumen atau gambar yang terlampir ini dengan sangat teliti.
+Tujuan Anda adalah mengekstrak semua informasi penting untuk membantu siswa belajar dan bersiap menghadapi kuis/ujian.
+Fokuslah pada fakta, definisi, rumus, dan konsep kunci yang kemungkinan besar akan keluar dalam ujian.
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
+Tolong berikan respon dalam format JSON murni (tanpa markdown blok koda) dengan struktur berikut:
+{
+  "title": "Judul materi yang menarik (Bahasa Indonesia)",
+  "summary": "Ringkasan strategis berorientasi kuis. GUNAKAN format bullet point (-) dan **tebal** pada kata kunci. WAJIB menggunakan format berikut dengan BARIS KOSONG di antara setiap poin:
 
-    const aiText = response.text || "{}";
-    // clean up potential markdown codeblocks that Gemini sometimes returns
+KONTEKS:
+Penjelasan konteks materi secara singkat.
+
+INTI MATERI:
+- **Definisi Utama:** Penjelasan yang mudah di-scan.
+
+- **Konsep Kunci:** Penjelasan penting yang kemungkinan keluar kuis.
+
+- **Rumus/Data:** Sertakan jika ada.
+
+KESIMPULAN:
+- **Poin Utama:** 1 kalimat kesimpulan yang kuat.
+
+(Gunakan Bahasa Indonesia, hindari paragraf panjang/wall of text).",
+  "keyConcepts": ["[Konsep 1]: Penjelasan spesifik berorientasi kuis (1 kalimat).", "[Konsep 2]: Fakta atau rumus teknis yang krusial (1 kalimat).", "[Konsep 3]: Definisi mendalam yang sering diujikan (1 kalimat)."],
+  "extractedText": "Seluruh teks yang berhasil Anda baca/ekstrak dari dokumen ini secara lengkap",
+  "confidenceScore": 95,
+  "estimatedReadTimeMinutes": 10
+}
+
+Pastikan "extractedText" berisi semua teks yang ada di dalam gambar/dokumen agar sistem chat bisa bekerja nantinya.`;
+
+    const response = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+        }
+      }
+    ]);
+
+    const aiText = response.response.text() || "{}";
     const cleanJsonString = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-    let metadata = {};
 
+    let aiResult;
     try {
-      metadata = JSON.parse(cleanJsonString);
+      aiResult = JSON.parse(cleanJsonString);
     } catch {
       console.error("Failed to parse Gemini JSON:", cleanJsonString);
-      metadata = { title: file.name, summary: "Could not generate summary." };
+      aiResult = {
+        title: file.name,
+        summary: "Berhasil diunggah namun gagal mengekstrak metadata otomatis.",
+        extractedText: "Teks gagal diekstrak.",
+        keyConcepts: []
+      };
     }
 
-    // 5. Store in Firebase Firestore
+    const { extractedText, ...metadata } = aiResult;
+
+    // 4. Store in Firebase Firestore
     const docId = uuidv4();
     const newDoc = {
       id: docId,
@@ -97,9 +118,11 @@ export async function POST(req: NextRequest) {
       fileName: file.name,
       fileSize: file.size,
       fileUrl: fileUrl,
-      extractedText: extractedText, // Storing full text for later Chat interactions
+      fileType: file.type,
+      extractedText: extractedText || "",
       metadata: metadata,
       createdAt: new Date().toISOString(),
+      completedStages: [] // Start fresh, user needs to complete stages manually
     };
 
     await adminDb.collection("documents").doc(docId).set(newDoc);

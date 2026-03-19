@@ -6,74 +6,82 @@ import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { CountingNumber } from "@/src/components/ui/CountingNumber";
+
+interface UserData {
+  name: string;
+  score: number;
+  avatar: string;
+  photoURL?: string | null;
+  isMe?: boolean;
+  prevRank?: number;
+}
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ totalXP: 0, rank: "-" });
   const [loading, setLoading] = useState(true);
 
+  // 1. Comprehensive Dummy Data for a full-looking leaderboard
+  const dummyUsers: UserData[] = [
+    { name: "Andi Saputra", score: 870, avatar: "A" },
+    { name: "Budi Santoso", score: 2115, avatar: "B" },
+    { name: "Citra Lestari", score: 1315, avatar: "C" },
+    { name: "Dimas Anggara", score: 200, avatar: "D" },
+    { name: "Eka Putri", score: 1020, avatar: "E" },
+    { name: "Fajar Pratama", score: 3150, avatar: "F" },
+    { name: "Gita Amalia", score: 720, avatar: "G" },
+    { name: "Hendra Wijaya", score: 900, avatar: "H" },
+    { name: "Indah Permata", score: 250, avatar: "I" },
+    { name: "Joko Susilo", score: 175, avatar: "J" },
+    { name: "Kristina", score: 55, avatar: "K" },
+    { name: "Luthfi", score: 60, avatar: "L" },
+    { name: "Maya", score: 10, avatar: "M" },
+    { name: "Rizky", score: 450, avatar: "R" },
+    { name: "Siti", score: 120, avatar: "S" },
+  ];
+
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchData() {
       if (!user?.uid) return;
       try {
-        const res = await fetch(`/api/user-stats?userId=${user.uid}`);
-        const data = await res.json();
-        if (data.success) {
-          setStats(data.stats);
+        // Fetch real current user stats for total XP
+        const statsRes = await fetch(`/api/user-stats?userId=${user.uid}`);
+        const statsData = await statsRes.json();
+        if (statsData.success) {
+          setStats(statsData.stats);
         }
       } catch (error) {
-        console.error("Error fetching user stats:", error);
+        console.error("Error fetching leaderboard stats:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchStats();
+    fetchData();
   }, [user]);
 
-  // 1. Define Current User object first
-  const myUser = {
+  // 1. Current Real User Object
+  const myUser: UserData = {
     name: user?.displayName || "Sobat Evoca",
     score: stats.totalXP,
-    avatar: user?.displayName?.charAt(0) || "U",
+    avatar: user?.displayName?.charAt(0).toUpperCase() || "U",
     photoURL: user?.photoURL,
-    isMe: true // Flag to identify the user
+    isMe: true
   };
 
-  // 2. Combine with Dummy Data
-  const rawUsers = [
-    { name: "Andi Saputra", score: 870, avatar: "A", prevRank: 1 },
-    { name: "Budi Santoso", score: 115, avatar: "B", prevRank: 2 },
-    { name: "Citra Lestari", score: 315, avatar: "C", prevRank: 3 },
-    { name: "Dimas Anggara", score: 200, avatar: "D", prevRank: 4 },
-    { name: "Eka Putri", score: 1020, avatar: "E", prevRank: 5 },
-    { name: "Fajar Pratama", score: 2150, avatar: "F", prevRank: 6 },
-    { name: "Gita Amalia", score: 20, avatar: "G", prevRank: 7 },
-    { name: "Hendra Wijaya", score: 900, avatar: "H", prevRank: 8 },
-    { name: "Indah Permata", score: 250, avatar: "I", prevRank: 9 },
-    { name: "Joko Susilo", score: 175, avatar: "J", prevRank: 10 },
-    { name: "Kristina", score: 55, avatar: "K", prevRank: 11 },
-    { name: "Luthfi", score: 60, avatar: "L", prevRank: 12 },
-    { name: "Maya", score: 10, avatar: "M", prevRank: 13 },
-    { ...myUser, prevRank: 14 } // Let's assume user was rank 14 previously
-  ];
+  // 2. Combine Real User with Dynamic Data (if any) and Dummy Data
+  // For now, we mix our real self with the dummies
+  const allInList = [myUser, ...dummyUsers];
 
-  // 3. Sorting all users by score and assigning real rank
-  const users = [...rawUsers]
+  // 3. Sorting all users by score and assigning ranks
+  const users = allInList
     .sort((a, b) => b.score - a.score)
     .map((u, index) => {
       const currentRank = index + 1;
-      const prevRank = (u as any).prevRank || currentRank;
-
-      let status: 'up' | 'down' | 'stable' = 'stable';
-      if (currentRank < prevRank) status = 'up';
-      else if (currentRank > prevRank) status = 'down';
-
       return {
-        isMe: false,
-        photoURL: null,
         ...u,
         rank: currentRank,
-        status,
+        status: 'stable',
         color: index === 0 ? "bg-amber-100 text-amber-600" :
           index === 1 ? "bg-stone-200 text-stone-600" :
             index === 2 ? "bg-orange-100 text-orange-600" :
@@ -87,15 +95,14 @@ export default function LeaderboardPage() {
     users.find(u => u.rank === 3),
   ].filter(Boolean);
 
-
   const others = users.filter(u => u.rank > 3);
 
-  // 4. Update currentUser to use calculated rank
+  // 4. Highlighted User Bar
   const rankedMe = users.find(u => u.isMe);
   const currentUser = {
     ...myUser,
     rank: rankedMe?.rank || "-",
-    status: rankedMe?.status || "stable",
+    status: "stable",
     color: "bg-indigo-600 text-white",
   };
 
@@ -297,7 +304,9 @@ export default function LeaderboardPage() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-3 bg-white/40 px-5 py-2.5 rounded-2xl border border-white/30 shadow-inner">
                     <Crown className="w-5 h-5 text-purple-950/70 fill-purple-950/50" />
-                    <span className="font-black text-purple-950 text-lg md:text-xl">{currentUser.score}</span>
+                    <span className="font-black text-purple-950 text-lg md:text-xl">
+                      <CountingNumber value={currentUser.score} />
+                    </span>
                   </div>
                   <button className="w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-md text-purple-950 rounded-full flex items-center justify-center hover:bg-white/30 transition-all border border-white/30 shrink-0">
                     <Share2 className="w-5 h-5 font-black" />

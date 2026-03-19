@@ -5,9 +5,15 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/context/AuthContext";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
-export function SummaryFinishButton({ documentId }: { documentId: string }) {
+export function SummaryFinishButton({ 
+  documentId, 
+  initialCompleted = false 
+}: { 
+  documentId: string;
+  initialCompleted?: boolean;
+}) {
   const [loading, setLoading] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [completed, setCompleted] = useState(initialCompleted);
   const router = useRouter();
   const { user } = useAuth();
 

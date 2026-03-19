@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { UploadCloud, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { UploadCloud, FileText, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -38,10 +38,11 @@ export function PdfUploader() {
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === "application/pdf") {
+      const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+      if (validTypes.includes(droppedFile.type)) {
         handleFileSelect(droppedFile);
       } else {
-        setError("Please upload a PDF file.");
+        setError("Please upload a PDF or Image file (JPG, PNG, WEBP).");
       }
     }
   }, []);
@@ -86,6 +87,15 @@ export function PdfUploader() {
 
       setUploadComplete(true);
 
+      // Track mission progress
+      if (user?.uid) {
+        fetch("/api/mission-track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.uid, type: "upload" }),
+        }).catch(e => console.error("Mission track failed:", e));
+      }
+
       // Store in localStorage for quick access/persistence on refresh
       if (data.document) {
         const localHistory = JSON.parse(localStorage.getItem('evoca_roadmap_cache') || '[]');
@@ -93,9 +103,9 @@ export function PdfUploader() {
         localStorage.setItem('evoca_roadmap_cache', JSON.stringify(updatedHistory));
       }
 
-      // Navigate to the Dashboard (Peta Misi) instead of individual page
+      // Navigate to the mission outline page instead of jumping straight to summary
       setTimeout(() => {
-        router.push(`/dashboard`);
+        router.push(`/ai-reader/${data.document.id}`);
       }, 1500); // short delay to show success icon
     } catch (err: unknown) {
       console.error(err);
@@ -113,12 +123,10 @@ export function PdfUploader() {
     <div className="w-full max-w-2xl mx-auto mt-12 mb-20">
       <div className="text-center mb-8">
         <h2 className="font-serif text-3xl font-bold tracking-tight text-stone-900 mb-3 text-balance">
-          Transform your reading material
+          Ubah materi belajarmu jadi kuis seru
         </h2>
         <p className="font-sans text-stone-600 text-lg text-balance">
-          Upload any PDF document. Our AI will analyze the contents and create
-          interactive quizzes, engaging podcasts, or let you chat directly with
-          the text.
+          Upload file PDF, foto catatan, atau gambar modul. AI kami akan membaca teksnya (sekaligus tulisan tangan) dan merancang peta belajarmu!
         </p>
       </div>
 
@@ -141,15 +149,15 @@ export function PdfUploader() {
             </div>
             <div>
               <p className="font-medium outline-none text-stone-900 text-lg mb-1">
-                Drag and drop your PDF here
+                Tarik dan lepas PDF atau Gambar di sini
               </p>
               <p className="text-sm text-stone-500">
-                or click to browse your files
+                atau klik untuk memilih file dari perangkatmu
               </p>
             </div>
             <input
               type="file"
-              accept="application/pdf"
+              accept="application/pdf,image/*"
               onChange={handleFileInput}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
@@ -159,7 +167,11 @@ export function PdfUploader() {
         {file && !uploadComplete && (
           <div className="flex flex-col items-center justify-center text-center space-y-6">
             <div className="flex items-center space-x-4 p-4 bg-stone-50 rounded-lg border border-stone-200 w-full max-w-md">
-              <FileText className="w-8 h-8 text-stone-900 shrink-0" />
+              {file.type.startsWith('image/') ? (
+                <ImageIcon className="w-8 h-8 text-stone-900 shrink-0" />
+              ) : (
+                <FileText className="w-8 h-8 text-stone-900 shrink-0" />
+              )}
               <div className="flex-1 min-w-0 text-left">
                 <p className="font-medium text-stone-900 truncate">
                   {file.name}

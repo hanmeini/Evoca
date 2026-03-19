@@ -38,6 +38,7 @@ export default function AiReaderQuizPage({
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [xpAwarded, setXpAwarded] = useState(0);
+  const [isAlreadyFinishedQuiz, setIsAlreadyFinishedQuiz] = useState(false);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -56,6 +57,15 @@ export default function AiReaderQuizPage({
 
         if (data.quiz && data.quiz.length > 0) {
           setQuizData(data.quiz);
+          
+          // Check if already finished
+          const docRes = await fetch(`/api/document/${id}`);
+          const docData = await docRes.json();
+          if (docData.success && docData.data?.completedStages?.includes("quiz")) {
+            setIsFinished(true);
+            setIsAlreadyFinishedQuiz(true);
+            setScore(data.quiz.length); 
+          }
         } else {
           setError("No questions generated.");
         }
@@ -95,7 +105,14 @@ export default function AiReaderQuizPage({
           await fetch('/api/progress', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ documentId: id, stage: "quiz", userId: user.uid, xpGained: score * 20 }),
+            body: JSON.stringify({ 
+              documentId: id, 
+              stage: "quiz", 
+              userId: user.uid, 
+              xpGained: score * 20,
+              score: score,
+              total: quizData.length
+            }),
           });
           router.refresh();
         } catch (e) {
@@ -160,11 +177,18 @@ export default function AiReaderQuizPage({
 
             {/* Gamification Success Badge */}
             <div className="flex justify-center mb-10">
-              <div className="bg-[#ffc800] text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 border-[#e5a500] flex items-center gap-3 transform scale-110 animate-in zoom-in duration-500">
-                <span className="text-xl">🎉</span>
+              <div className={cn(
+                "text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 flex items-center gap-3 transform scale-110 animate-in zoom-in duration-500",
+                isAlreadyFinishedQuiz ? "bg-stone-400 border-stone-500 opacity-80" : "bg-[#ffc800] border-[#e5a500]"
+              )}>
+                <span className="text-xl">{isAlreadyFinishedQuiz ? "✅" : "🎉"}</span>
                 <div className="flex flex-col items-start leading-none">
-                  <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
-                  <p className="font-bold text-[10px] text-amber-800 font-sans">+{score * 20} XP Diraih</p>
+                  <p className="font-black uppercase tracking-widest text-[11px] text-stone-900 border-b border-black/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">
+                    {isAlreadyFinishedQuiz ? "Sudah Selesai" : "Misi Selesai!"}
+                  </p>
+                  <p className="font-bold text-[10px] text-stone-800 font-sans">
+                    {isAlreadyFinishedQuiz ? "Tinjauan Selesai" : `+${score * 20} XP Diraih`}
+                  </p>
                 </div>
               </div>
             </div>

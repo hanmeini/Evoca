@@ -159,25 +159,9 @@ export default function NewMissionPage() {
                      </h2>
                   </div>
                   
-                  <div className="w-full max-w-2xl mx-auto mt-8 mb-16">
-                     <div className="border-2 border-dashed border-stone-300 rounded-3xl p-12 bg-stone-50 hover:bg-[#fffbeb] hover:border-amber-300 transition-colors group cursor-pointer text-center flex flex-col items-center">
-                        <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                           <UploadCloud className="w-8 h-8 text-amber-400" />
-                        </div>
-                        <h3 className="text-lg font-black text-stone-800 mb-2">Jepret atau Unggah Foto</h3>
-                        <p className="text-stone-500 text-sm font-medium mb-6 max-w-md">
-                           Foto rangkuman catatanmu, papan tulis di kelas, atau modul buku cetak. EVOCA akan mengekstrak teksnya jadi kuis interaktif!
-                        </p>
-                        <div className="flex gap-4">
-                           <button className="px-6 py-3 bg-white border border-stone-200 rounded-xl font-bold text-stone-600 text-sm hover:bg-stone-100 shadow-sm transition-colors flex items-center gap-2">
-                              <ImageIcon className="w-4 h-4" /> Cari File Foto
-                           </button>
-                           <button className="px-6 py-3 bg-amber-500 text-white rounded-xl font-bold text-sm shadow-[0_4px_0_0_#d97706] hover:-translate-y-0.5 hover:shadow-[0_6px_0_0_#d97706] transition-all flex items-center gap-2">
-                              <Camera className="w-4 h-4" /> Buka Kamera
-                           </button>
-                        </div>
-                     </div>
-                  </div>
+                   <div className="w-full max-w-2xl mx-auto mt-2">
+                      <PdfUploader />
+                   </div>
                </div>
             )}
 

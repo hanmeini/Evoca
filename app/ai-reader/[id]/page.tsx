@@ -1,6 +1,6 @@
 "use client";
 
-import { PathMap } from "@/src/components/reader/PathMap";
+import { PathMap, PathStage } from "@/src/components/reader/PathMap";
 import { THEMES } from "@/src/components/reader/PathNode";
 import { useSearchParams } from "next/navigation";
 import { use, useEffect, useState, Suspense } from "react";
@@ -14,8 +14,8 @@ function AiReaderPathContent({
   const searchParams = useSearchParams();
   const themeParam = searchParams.get("theme") as keyof typeof THEMES | null;
   const theme = themeParam && THEMES[themeParam] ? themeParam : "evoca1";
-
-  const [stages, setStages] = useState<any[]>([]);
+  
+  const [stages, setStages] = useState<PathStage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,11 +26,11 @@ function AiReaderPathContent({
 
         if (result.success && result.data) {
           const data = result.data;
-          const baseStages: any[] = [
+          const baseStages: PathStage[] = [
             {
               id: 1,
               type: "summary",
-              label: "Tahap 1: Materi",
+              label: "Tahap 1: Ringkasan",
               href: `/ai-reader/${id}/summary`,
               status: "current",
             },
@@ -51,7 +51,7 @@ function AiReaderPathContent({
             {
               id: 4,
               type: "chat",
-              label: "Tahap 4: Diskusi AI",
+              label: "Tahap 4: Diskusi",
               href: `/ai-reader/${id}/chat`,
               status: "locked",
             },

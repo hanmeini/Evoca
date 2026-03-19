@@ -22,7 +22,8 @@ export default function AiReaderLayout({
     const searchParams = new URLSearchParams(window.location.search);
     const t = searchParams.get("theme") as keyof typeof THEMES | null;
     if (t && THEMES[t]) {
-      setHeaderColor((THEMES[t] as any).header);
+      const themeData = THEMES[t];
+      setHeaderColor((prev) => prev !== themeData.header ? themeData.header : prev);
     }
   }, []);
 
@@ -79,27 +80,29 @@ export default function AiReaderLayout({
             </div>
           </div>
 
-          {pdfUrl ? (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white/20 hover:bg-white/30 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1"
-            >
-              <NotebookTabs className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="hidden sm:inline">Lihat PDF Asli</span>
-              <span className="sm:hidden">PDF Asli</span>
-            </a>
-          ) : (
-            <button
-              onClick={() => alert("Data PDF asli tidak ditemukan atau masih diproses.")}
-              className="bg-white/10 text-white/50 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest cursor-not-allowed"
-            >
-              <NotebookTabs className="w-4 h-4 md:w-5 md:h-5 opacity-50" />
-              <span className="hidden sm:inline">PDF Asli (N/A)</span>
-              <span className="sm:hidden">N/A</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {pdfUrl ? (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/20 hover:bg-white/30 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all border-b-4 border-black/10 active:border-b-0 active:translate-y-1"
+              >
+                <NotebookTabs className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Lihat File Asli</span>
+                <span className="sm:hidden">File Asli</span>
+              </a>
+            ) : (
+              <button
+                onClick={() => alert("File asli sedang disiapkan atau tidak ditemukan.")}
+                className="bg-white/10 text-white/50 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest cursor-not-allowed"
+              >
+                <NotebookTabs className="w-4 h-4 md:w-5 md:h-5 opacity-50" />
+                <span className="hidden sm:inline">File Asli (N/A)</span>
+                <span className="sm:hidden">N/A</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

@@ -37,6 +37,7 @@ export default function AiReaderPodcastPage({
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [trackProgress, setTrackProgress] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isAlreadyFinishedPodcast, setIsAlreadyFinishedPodcast] = useState(false);
   const [userXP, setUserXP] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -90,6 +91,14 @@ export default function AiReaderPodcastPage({
 
         if (data.script && data.script.length > 0) {
           setScript(data.script);
+          
+          // Check if already finished
+          const docRes = await fetch(`/api/document/${id}`);
+          const docData = await docRes.json();
+          if (docData.success && docData.data?.completedStages?.includes("podcast")) {
+            setIsCompleted(true);
+            setIsAlreadyFinishedPodcast(true);
+          }
         } else {
           setError("No script generated.");
         }
@@ -306,11 +315,18 @@ export default function AiReaderPodcastPage({
             <div className="flex items-center justify-between min-h-[5rem]">
               {isCompleted ? (
                 <div className="w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                  <div className="bg-[#ffc800] text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 border-[#e5a500] flex items-center gap-3 mb-6 transform scale-110">
-                    <span className="text-xl">🎉</span>
+                  <div className={cn(
+                    "text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 flex items-center gap-3 mb-6 transform scale-110",
+                    isAlreadyFinishedPodcast ? "bg-stone-400 border-stone-500 opacity-80" : "bg-[#ffc800] border-[#e5a500]"
+                  )}>
+                    <span className="text-xl">{isAlreadyFinishedPodcast ? "✅" : "🎉"}</span>
                     <div className="flex flex-col items-start leading-none">
-                      <p className="font-black uppercase tracking-widest text-[11px] text-amber-900 border-b border-amber-900/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">Misi Selesai!</p>
-                      <p className="font-bold text-[10px] text-amber-800 font-sans">+50 XP Diraih</p>
+                      <p className="font-black uppercase tracking-widest text-[11px] text-stone-900 border-b border-black/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">
+                        {isAlreadyFinishedPodcast ? "Sudah Selesai" : "Misi Selesai!"}
+                      </p>
+                      <p className="font-bold text-[10px] text-stone-800 font-sans">
+                        {isAlreadyFinishedPodcast ? "Tinjauan Selesai" : "+50 XP Diraih"}
+                      </p>
                     </div>
                   </div>
                   <Link
@@ -412,18 +428,6 @@ export default function AiReaderPodcastPage({
             );
           })}
         </div>
-
-        {/* Finish Button - Hidden when completed so user uses main CTA in player */}
-        {!isCompleted && (
-          <div className="mt-12 flex justify-center pb-20">
-            <Link
-              href={`/ai-reader/${id}`}
-              className="bg-stone-300 text-stone-500 font-black px-12 py-4 rounded-2xl shadow-sm border-b-8 border-stone-400/50 uppercase tracking-widest text-sm opacity-50 cursor-not-allowed pointer-events-none"
-            >
-              Dengarkan sampai habis ✨
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );
