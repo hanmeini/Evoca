@@ -3,7 +3,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { PathNode, THEMES } from "@/src/components/reader/PathNode";
-import { Bell, Sparkles, Search, Plus, BookOpen, Trophy, Flame, MessageCircle, Zap } from "lucide-react";
+import {
+  Bell,
+  Sparkles,
+  Search,
+  Plus,
+  BookOpen,
+  Trophy,
+  Flame,
+  MessageCircle,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/src/context/AuthContext";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
@@ -78,18 +88,23 @@ const getSubProgress = (doc: DocumentHistory) => {
 export default function DashboardOverviewPage() {
   const [history, setHistory] = useState<DocumentHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, userStats = { streak: 1, totalXP: 0, gems: 500, completedMissions: [] } } = useAuth();
+  const {
+    user,
+    userStats = { streak: 1, totalXP: 0, gems: 500, completedMissions: [] },
+  } = useAuth();
   const [mascotQuote, setMascotQuote] = useState("Halo!");
   const [isReadyToAnimate, setIsReadyToAnimate] = useState(false);
 
   const triggerMotivation = () => {
-    const name = user?.displayName ? user.displayName.split(" ")[0] : "Sobat Evoca";
+    const name = user?.displayName
+      ? user.displayName.split(" ")[0]
+      : "Sobat Evoca";
     const quotes = [
       `Semangat belajarnya, ${name}!`,
       "Kamu pasti bisa!",
       `Teruslah belajar, ${name}!`,
       "Jangan menyerah!",
-      `Kamu hebat, ${name}!`
+      `Kamu hebat, ${name}!`,
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setMascotQuote(randomQuote);
@@ -97,8 +112,8 @@ export default function DashboardOverviewPage() {
 
   useEffect(() => {
     // 1. Initial Load from LocalStorage Cache (Immediate UI)
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('evoca_roadmap_cache');
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("evoca_roadmap_cache");
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -119,13 +134,17 @@ export default function DashboardOverviewPage() {
 
       try {
         // Fetch History with cache-busting timestamp
-        const histRes = await fetch(`/api/history?userId=${user.uid}&t=${Date.now()}`);
+        const histRes = await fetch(
+          `/api/history?userId=${user.uid}&t=${Date.now()}`,
+        );
         const histData = await histRes.json();
         if (histData.success && histData.history) {
           setHistory(histData.history);
-          localStorage.setItem('evoca_roadmap_cache', JSON.stringify(histData.history));
+          localStorage.setItem(
+            "evoca_roadmap_cache",
+            JSON.stringify(histData.history),
+          );
         }
-
       } finally {
         setLoading(false);
         // Trigger animations immediately after content is loaded
@@ -144,7 +163,7 @@ export default function DashboardOverviewPage() {
         if (currentNode) {
           currentNode.scrollIntoView({
             behavior: "smooth",
-            block: "center"
+            block: "center",
           });
         }
       }, 1200); // Wait for initial animations to settle
@@ -164,7 +183,6 @@ export default function DashboardOverviewPage() {
     return paddedHistory.reverse();
   }, [history]);
 
-
   // Pre-calculate the current active mission index
   const firstUnfinishedIdx = useMemo(() => {
     for (let i = 0; i < renderedNodes.length; i++) {
@@ -182,19 +200,51 @@ export default function DashboardOverviewPage() {
   const currentDailyMission = useMemo(() => {
     const todayStr = getTodayStr();
     const d = userStats?.dailyProgress?.[todayStr] || {};
-    
+
     const templates = [
-      { id: "daily-visit", title: "Absensi Petualang", icon: "🔥", goal: 1, current: 1 },
-      { id: "m1", title: "Pustakawan Cilik", icon: "📚", goal: 1, current: d.documentsUploaded || 0 },
-      { id: "m2", title: "Si Paling Nanya", icon: "💬", goal: 5, current: d.messagesSent || 0 },
-      { id: "m4", title: "Pendengar Setia", icon: "⚡", goal: 1, current: d.podcastsFinished || 0 },
-      { id: "m3", title: "Pejuang Kuis", icon: "🏆", goal: 1, current: d.quizzesPerfect || 0 },
+      {
+        id: "daily-visit",
+        title: "Absensi Petualang",
+        icon: "🔥",
+        goal: 1,
+        current: 1,
+      },
+      {
+        id: "m1",
+        title: "Pustakawan Cilik",
+        icon: "📚",
+        goal: 1,
+        current: d.documentsUploaded || 0,
+      },
+      {
+        id: "m2",
+        title: "Si Paling Nanya",
+        icon: "💬",
+        goal: 5,
+        current: d.messagesSent || 0,
+      },
+      {
+        id: "m4",
+        title: "Pendengar Setia",
+        icon: "⚡",
+        goal: 1,
+        current: d.podcastsFinished || 0,
+      },
+      {
+        id: "m3",
+        title: "Pejuang Kuis",
+        icon: "🏆",
+        goal: 1,
+        current: d.quizzesPerfect || 0,
+      },
     ];
 
-    const missions = templates.map(m => ({
+    const missions = templates.map((m) => ({
       ...m,
       completed: m.current >= m.goal,
-      claimed: userStats?.completedMissions?.includes(`claim-${todayStr}-${m.id}`) ?? false
+      claimed:
+        userStats?.completedMissions?.includes(`claim-${todayStr}-${m.id}`) ??
+        false,
     }));
 
     // Find the first one that is NOT claimed (since even if completed, it might not be claimed)
@@ -203,15 +253,17 @@ export default function DashboardOverviewPage() {
     // Let's show the first mission that is NOT completed.
     // If all are completed, but some are not claimed, we could show those.
     // But the most common meaning of "belum selesai" is not reached the goal.
-    
-    return missions.find(m => !m.completed) || missions.find(m => !m.claimed);
-  }, [userStats, getTodayStr()]);
 
+    return (
+      missions.find((m) => !m.completed) || missions.find((m) => !m.claimed)
+    );
+  }, [userStats, getTodayStr()]);
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes evoca-wave {
           0%, 100% { transform: rotate(0deg); }
           25% { transform: rotate(-8deg); }
@@ -229,7 +281,9 @@ export default function DashboardOverviewPage() {
             --path-scale: 0.85;
           }
         }
-      `}} />
+      `,
+        }}
+      />
       <div className="bg-white min-h-screen pb-32 font-sans">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-stone-200 px-4 md:px-8 py-4">
@@ -247,19 +301,31 @@ export default function DashboardOverviewPage() {
             <div className="flex items-center gap-4 md:gap-8">
               {/* Duolingo Stats Icons */}
               <div className="flex items-center gap-4">
-                <Link href="/dashboard/missions" className="flex items-center gap-2 group cursor-pointer" title="Streak">
+                <Link
+                  href="/dashboard/missions"
+                  className="flex items-center gap-2 group cursor-pointer"
+                  title="Streak"
+                >
                   <span className="text-xl">🔥</span>
                   <span className="text-sm font-black text-[#ff9600] group-hover:scale-110 transition-transform">
                     {userStats.streak || 1}
                   </span>
                 </Link>
-                <Link href="/dashboard/leaderboard" className="flex items-center gap-2 group cursor-pointer" title="Total XP">
+                <Link
+                  href="/dashboard/leaderboard"
+                  className="flex items-center gap-2 group cursor-pointer"
+                  title="Total XP"
+                >
                   <span className="text-xl">⭐</span>
                   <span className="text-sm font-black text-[#8b5cf6] group-hover:scale-110 transition-transform">
                     <CountingNumber value={userStats.totalXP || 0} />
                   </span>
                 </Link>
-                <Link href="/dashboard/missions" className="flex items-center gap-2 group cursor-pointer" title="Permata">
+                <Link
+                  href="/dashboard/missions"
+                  className="flex items-center gap-2 group cursor-pointer"
+                  title="Permata"
+                >
                   <span className="text-xl">💎</span>
                   <span className="text-sm font-black text-[#1cb0f6] group-hover:scale-110 transition-transform">
                     <CountingNumber value={userStats.gems || 500} />
@@ -333,7 +399,10 @@ export default function DashboardOverviewPage() {
 
                         let status: "locked" | "current" | "completed";
 
-                        if (idx < firstUnfinishedIdx && firstUnfinishedIdx !== -1) {
+                        if (
+                          idx < firstUnfinishedIdx &&
+                          firstUnfinishedIdx !== -1
+                        ) {
                           status = "completed";
                         } else if (idx === firstUnfinishedIdx) {
                           status = "current";
@@ -358,25 +427,41 @@ export default function DashboardOverviewPage() {
                         const isMonsterNode = positionInUnit === 4;
 
                         // Configuration for this mascot block
-                        const safeUnitIdx = Math.min(unitIndex, mascots.length - 1);
+                        const safeUnitIdx = Math.min(
+                          unitIndex,
+                          mascots.length - 1,
+                        );
                         const blockMascot = mascots[safeUnitIdx];
-                        const theme = blockMascot.theme as "evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5";
+                        const theme = blockMascot.theme as
+                          | "evoca1"
+                          | "evoca2"
+                          | "evoca3"
+                          | "evoca4"
+                          | "evoca5";
 
                         // Mascot for a unit is colored if the user has reached any mission in that unit
-                        const isBlockUnlocked = (unitIndex === 0) || (firstUnfinishedIdx === -1) || (firstUnfinishedIdx >= unitIndex * 5);
+                        const isBlockUnlocked =
+                          unitIndex === 0 ||
+                          firstUnfinishedIdx === -1 ||
+                          firstUnfinishedIdx >= unitIndex * 5;
 
                         const isFirstInUnit = positionInUnit === 0 && idx !== 0;
 
                         // Stronger Curved Offset Logic
                         const isUnitEven = unitIndex % 2 === 0;
                         const baseOffsets = [0, 60, 95, 60, 0];
-                        const xOffset = isUnitEven ? baseOffsets[positionInUnit] : -baseOffsets[positionInUnit];
+                        const xOffset = isUnitEven
+                          ? baseOffsets[positionInUnit]
+                          : -baseOffsets[positionInUnit];
 
                         return (
                           <div
                             key={doc.id}
                             data-status={status}
-                            className={cn("relative w-full flex flex-col items-center py-2", isFirstInUnit && "mt-12")}
+                            className={cn(
+                              "relative w-full flex flex-col items-center py-2",
+                              isFirstInUnit && "mt-12",
+                            )}
                           >
                             {/* Mascot - Placed only once per 5 quests (centered vertically across the 5 quests, which is position 2) */}
                             {positionInUnit === 2 && (
@@ -384,7 +469,9 @@ export default function DashboardOverviewPage() {
                                 className={cn(
                                   "absolute top-1/2 -translate-y-1/2 z-0",
                                   // Place mascot significantly far to the left or right, at the peak of the curve's height
-                                  isUnitEven ? "right-1/2 mr-14 md:mr-20" : "left-1/2 ml-14 md:ml-20"
+                                  isUnitEven
+                                    ? "right-1/2 mr-14 md:mr-20"
+                                    : "left-1/2 ml-14 md:ml-20",
                                 )}
                               >
                                 <div
@@ -426,7 +513,8 @@ export default function DashboardOverviewPage() {
                               className="relative z-10"
                               style={{
                                 transform: `translateX(calc(var(--path-scale, 1) * ${xOffset}px))`,
-                                transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                transition:
+                                  "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
                               }}
                             >
                               <PathNode
@@ -438,10 +526,18 @@ export default function DashboardOverviewPage() {
                                 status={status}
                                 href={
                                   isUnlocked
-                                    ? (isDummy ? "/dashboard/new" : `/ai-reader/${doc.id}?theme=${theme}`)
+                                    ? isDummy
+                                      ? "/dashboard/new"
+                                      : `/ai-reader/${doc.id}?theme=${theme}`
                                     : "#"
                                 }
-                                specialType={isDummy ? (isMonsterNode ? "monster" : "chest") : undefined}
+                                specialType={
+                                  isDummy
+                                    ? isMonsterNode
+                                      ? "monster"
+                                      : "chest"
+                                    : undefined
+                                }
                                 isTooltipVisible={status === "current"}
                                 theme={theme}
                                 pdfUrl={doc.fileUrl}
@@ -494,11 +590,11 @@ export default function DashboardOverviewPage() {
                   const diff = i - dayOfWeek;
                   currentDayDate.setDate(now.getDate() + diff);
 
-                  const dateStr = new Intl.DateTimeFormat('en-CA', {
-                    timeZone: 'Asia/Jakarta',
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
+                  const dateStr = new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "Asia/Jakarta",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
                   }).format(currentDayDate);
 
                   // Check if there was activity on this day
@@ -518,7 +614,7 @@ export default function DashboardOverviewPage() {
                             : "bg-stone-100 text-stone-400 border-b-4 border-stone-200",
                         )}
                       >
-                        {isToday ? "🔥" : (hasActivity ? "✅" : day)}
+                        {isToday ? "🔥" : hasActivity ? "✅" : day}
                       </div>
                     </div>
                   );
@@ -545,9 +641,7 @@ export default function DashboardOverviewPage() {
               <div className="absolute -right-4 -bottom-4 w-32 h-32 opacity-20 pointer-events-none group-hover:scale-125 transition-transform duration-500">
                 <Sparkles className="w-full h-full text-white" />
               </div>
-              <div className="absolute right-4 top-4 text-4xl">
-                🦉
-              </div>
+              <div className="absolute right-4 top-4 text-4xl">🦉</div>
             </div>
 
             {/* Leaderboard Card */}
@@ -580,7 +674,10 @@ export default function DashboardOverviewPage() {
                 <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest">
                   Misi Harian
                 </h3>
-                <Link href="/dashboard/missions" className="text-[10px] font-black text-[#58cc02] uppercase">
+                <Link
+                  href="/dashboard/missions"
+                  className="text-[10px] font-black text-[#58cc02] uppercase"
+                >
                   LIHAT SEMUA
                 </Link>
               </div>
@@ -595,34 +692,45 @@ export default function DashboardOverviewPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest truncate">
-                        {currentDailyMission ? "Misi Berikutnya" : "Luar Biasa!"}
+                        {currentDailyMission
+                          ? "Misi Berikutnya"
+                          : "Luar Biasa!"}
                       </p>
                       <p className="text-xs font-black text-indigo-900 truncate">
-                        {currentDailyMission 
-                          ? currentDailyMission.title 
-                          : "Semua Misi Selesai!"
-                        }
+                        {currentDailyMission
+                          ? currentDailyMission.title
+                          : "Semua Misi Selesai!"}
                       </p>
                     </div>
                   </div>
-                  
+
                   {currentDailyMission && (
                     <div className="mt-3 space-y-1">
                       <div className="flex justify-between text-[9px] font-bold text-indigo-400 uppercase tracking-tighter">
                         <span>Progress</span>
-                        <span>{currentDailyMission.current}/{currentDailyMission.goal}</span>
+                        <span>
+                          {currentDailyMission.current}/
+                          {currentDailyMission.goal}
+                        </span>
                       </div>
                       <div className="h-1.5 bg-white rounded-full overflow-hidden shadow-inner">
-                        <div 
-                          className="h-full bg-indigo-500 rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min((currentDailyMission.current / currentDailyMission.goal) * 100, 100)}%` }}
+                        <div
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min((currentDailyMission.current / currentDailyMission.goal) * 100, 100)}%`,
+                          }}
                         />
                       </div>
                     </div>
                   )}
 
-                  <Link href="/dashboard/missions" className="mt-4 w-full py-3 bg-[#58cc02] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center">
-                    {currentDailyMission ? "CEK MISI SEKARANG" : "KLAIM HADIAHMU"}
+                  <Link
+                    href="/dashboard/missions"
+                    className="mt-4 w-full py-3 bg-[#58cc02] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center"
+                  >
+                    {currentDailyMission
+                      ? "CEK MISI SEKARANG"
+                      : "KLAIM HADIAHMU"}
                   </Link>
                 </div>
               </div>
@@ -648,4 +756,3 @@ export default function DashboardOverviewPage() {
     </>
   );
 }
-

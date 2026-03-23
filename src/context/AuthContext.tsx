@@ -22,8 +22,8 @@ interface UserStats {
       documentsUploaded?: number;
       quizzesPerfect?: number;
       podcastsFinished?: number;
-    }
-  }
+    };
+  };
 }
 
 interface AuthContextType {
@@ -39,9 +39,9 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   userStats: { gems: 500, totalXP: 0, streak: 1, completedMissions: [] },
-  signInWithGoogle: async () => { },
-  logOut: async () => { },
-  refreshStats: async () => { },
+  signInWithGoogle: async () => {},
+  logOut: async () => {},
+  refreshStats: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -49,11 +49,11 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userStats, setUserStats] = useState<UserStats>({ 
-    gems: 500, 
-    totalXP: 0, 
-    streak: 1, 
-    completedMissions: [] 
+  const [userStats, setUserStats] = useState<UserStats>({
+    gems: 500,
+    totalXP: 0,
+    streak: 1,
+    completedMissions: [],
   });
   const router = useRouter();
 
@@ -64,11 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       if (data.success && data.data) {
         setUserStats({
-          gems: typeof data.data.gems === 'number' ? data.data.gems : 500,
-          totalXP: typeof data.data.totalXP === 'number' ? data.data.totalXP : 0,
-          streak: typeof data.data.streak === 'number' ? data.data.streak : 1,
-          completedMissions: Array.isArray(data.data.completedMissions) ? data.data.completedMissions : [],
-          dailyProgress: data.data.dailyProgress || {}
+          gems: typeof data.data.gems === "number" ? data.data.gems : 500,
+          totalXP:
+            typeof data.data.totalXP === "number" ? data.data.totalXP : 0,
+          streak: typeof data.data.streak === "number" ? data.data.streak : 1,
+          completedMissions: Array.isArray(data.data.completedMissions)
+            ? data.data.completedMissions
+            : [],
+          dailyProgress: data.data.dailyProgress || {},
         });
       }
     } catch (e) {
@@ -89,7 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) {
       setUserStats((prev) => {
-        if (prev.totalXP === 0 && prev.gems === 500 && prev.streak === 1 && prev.completedMissions.length === 0) {
+        if (
+          prev.totalXP === 0 &&
+          prev.gems === 500 &&
+          prev.streak === 1 &&
+          prev.completedMissions.length === 0
+        ) {
           return prev;
         }
         return { gems: 500, totalXP: 0, streak: 1, completedMissions: [] };
@@ -98,21 +106,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userDocRef = doc(db, "users", user.uid);
-    const unsubscribeStats = onSnapshot(userDocRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        setUserStats({
-          gems: typeof data.gems === 'number' ? data.gems : 500,
-          totalXP: typeof data.totalXP === 'number' ? data.totalXP : 0,
-          streak: typeof data.streak === 'number' ? data.streak : 1,
-          completedMissions: Array.isArray(data.completedMissions) ? data.completedMissions : [],
-          dailyProgress: data.dailyProgress || {}
-        });
-      }
-    }, (error) => {
-      console.warn("Firestore Real-time failed (likely permissions):", error.message);
-      refreshStats();
-    });
+    const unsubscribeStats = onSnapshot(
+      userDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setUserStats({
+            gems: typeof data.gems === "number" ? data.gems : 500,
+            totalXP: typeof data.totalXP === "number" ? data.totalXP : 0,
+            streak: typeof data.streak === "number" ? data.streak : 1,
+            completedMissions: Array.isArray(data.completedMissions)
+              ? data.completedMissions
+              : [],
+            dailyProgress: data.dailyProgress || {},
+          });
+        }
+      },
+      (error) => {
+        console.warn(
+          "Firestore Real-time failed (likely permissions):",
+          error.message,
+        );
+        refreshStats();
+      },
+    );
 
     return () => unsubscribeStats();
   }, [user]);
@@ -124,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.uid }),
-      }).catch(err => console.warn("Streak check failed:", err));
+      }).catch((err) => console.warn("Streak check failed:", err));
     }
   }, [user]);
 
@@ -148,7 +165,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, userStats, signInWithGoogle, logOut, refreshStats }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        userStats,
+        signInWithGoogle,
+        logOut,
+        refreshStats,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

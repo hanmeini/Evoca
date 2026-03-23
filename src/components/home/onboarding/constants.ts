@@ -1,0 +1,51 @@
+import { MascotInfo } from "./types";
+
+export const MASCOTS: MascotInfo[] = [
+  {
+    id: "tiger",
+    name: "Tiger Ninja",
+    description: "Si Pemberani yang fokus dan tajam.",
+    color: "text-orange-600",
+    bg: "bg-orange-50",
+    image: "/images/tiger-mascot.png"
+  },
+  {
+    id: "komodo",
+    name: "Komodo Sage",
+    description: "Si Pintar yang strategis dan tenang.",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    image: "/images/komodo-mascot-new.png"
+  },
+  {
+    id: "rhino",
+    name: "Rhino Tank",
+    description: "Si Tangguh yang konsisten dan kuat.",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+    image: "/images/badak-mascot.png"
+  },
+];
+
+export const STROKE_STYLE = {
+  WebkitTextStroke: "2px white",
+  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+};
+
+export const LOADING_TIPS = [
+  "Belajar 15 menit setiap hari lebih efektif daripada 3 jam sekali seminggu.",
+  "Kumpulkan koin untuk membuka item langka di toko quest!",
+  "Selesaikan quest harian untuk menjaga streak belajarmu.",
+  "Leaderboard diperbarui secara real-time. Kejar rank tertinggimu!",
+  "Coba AI Reader untuk merangkum dokumen panjang dalam sekejap.",
+];
+
+export const LOADING_LOGS = [
+  "Membangun Peta Pertualangan...",
+  "Menyusun Quest Harian...",
+  "Menyiapkan Partner Belajarmu...",
+  "Mengasah Konsentrasi...",
+  "Menyebar Treasure Chest...",
+  "Mensinkronisasi Jadwal Belajar...",
+  "Membangkitkan Semangat Belajar!"
+];

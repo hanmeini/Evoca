@@ -1,6 +1,6 @@
 "use client";
 
-import { Inter, Merriweather } from "next/font/google";
+import { Inter, Merriweather, Lilita_One } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Navbar } from "@/src/components/layout/Navbar";
@@ -10,6 +10,12 @@ import { AuthProvider } from "@/src/context/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const lilita = Lilita_One({
+  variable: "--font-lilita",
+  weight: ["400"],
   subsets: ["latin"],
 });
 
@@ -56,20 +62,18 @@ export default function RootLayout({
 
   // Don't show the marketing Navbar/Footer on Auth or Dashboard pages
   const isMarketingPage =
+    pathname !== "/" &&
     !pathname?.startsWith("/dashboard") &&
     !pathname?.startsWith("/login") &&
     !pathname?.startsWith("/register") &&
     !pathname?.startsWith("/ai-reader"); // Also hide in the reader view
 
-  const hideMobileNav =
-    isMarketingPage ||
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/register");
+  const showMobileNav = pathname?.startsWith("/dashboard");
 
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${merriweather.variable} ${lato.variable} antialiased bg-[var(--color-evoca-bg)] text-stone-900 font-sans selection:bg-stone-200 min-h-screen pb-24 sm:pb-0`}
+        className={`${inter.variable} ${merriweather.variable} ${lato.variable} ${lilita.variable} antialiased bg-[var(--color-evoca-bg)] text-stone-900 font-sans selection:bg-stone-200 min-h-screen ${showMobileNav ? "pb-24 sm:pb-0" : ""}`}
       >
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
@@ -79,7 +83,7 @@ export default function RootLayout({
             </main>
             {isMarketingPage && <Footer />}
 
-            {!hideMobileNav && <MobileBottomNav />}
+            {showMobileNav && <MobileBottomNav />}
           </div>
         </AuthProvider>
       </body>
