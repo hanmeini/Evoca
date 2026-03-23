@@ -6,15 +6,35 @@ import { LayoutDashboard, Trophy, Target } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
+import { useMemo } from "react";
+import { getTodayStr } from "@/src/lib/utils";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, userStats } = useAuth();
+
+  const hasClaimableMissions = useMemo(() => {
+    if (!userStats) return false;
+    const todayStr = getTodayStr();
+    const d = userStats.dailyProgress?.[todayStr] || {};
+    
+    const templates = [
+      { id: "m1", goal: 1, current: d.documentsUploaded || 0 },
+      { id: "m2", goal: 5, current: d.messagesSent || 0 },
+      { id: "m4", goal: 1, current: d.podcastsFinished || 0 },
+      { id: "m3", goal: 1, current: d.quizzesPerfect || 0 },
+    ];
+
+    return templates.some(m => 
+      m.current >= m.goal && 
+      !userStats.completedMissions?.includes(`claim-${todayStr}-${m.id}`)
+    );
+  }, [userStats]);
 
   const navItems = [
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
     { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
-    { icon: Target, label: "Misi Harian", href: "/dashboard/missions" },
+    { icon: Target, label: "Misi Harian", href: "/dashboard/missions", hasBadge: hasClaimableMissions },
   ];
 
   return (
@@ -32,7 +52,12 @@ export function MobileBottomNav() {
               )}
             >
               <div className="flex flex-col items-center gap-1.5">
-                <item.icon className="w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300" />
+                <div className="relative">
+                  <item.icon className="w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300" />
+                  {item.hasBadge && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
+                  )}
+                </div>
                 <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight line-clamp-1">
                   {item.label}
                 </span>

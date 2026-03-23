@@ -58,22 +58,28 @@ Fokuslah pada fakta, definisi, rumus, dan konsep kunci yang kemungkinan besar ak
 Tolong berikan respon dalam format JSON murni (tanpa markdown blok koda) dengan struktur berikut:
 {
   "title": "Judul materi yang menarik (Bahasa Indonesia)",
-  "summary": "Ringkasan strategis berorientasi kuis. GUNAKAN format bullet point (-) dan **tebal** pada kata kunci. WAJIB menggunakan format berikut dengan BARIS KOSONG di antara setiap poin:
+  "summary": "Ringkasan strategis berorientasi kuis.
+
+MANDATORY RULES:
+1. JANGAN PERNAH memberikan ringkasan dalam bentuk paragraf panjang (NO WALL OF TEXT).
+2. WAJIB menggunakan format point-by-point (-) untuk setiap penjelasan.
+3. WAJIB menggunakan format **tebal** pada kata kunci atau istilah teknis di setiap baris.
+4. Pastikan ada baris kosong (double newline) di antara setiap section.
+
+WAJIB menggunakan struktur berikut:
 
 KONTEKS:
-Penjelasan konteks materi secara singkat.
+- **Konteks:** Penjelasan konteks materi secara singkat (1-2 poin saja).
 
 INTI MATERI:
-- **Definisi Utama:** Penjelasan yang mudah di-scan.
-
-- **Konsep Kunci:** Penjelasan penting yang kemungkinan keluar kuis.
-
-- **Rumus/Data:** Sertakan jika ada.
+- **[Keyword]:** Penjelasan yang singkat, padat, dan mudah di-scan.
+- **[Keyword]:** Penjelasan penting lainnya berorientasi kuis.
+- **[Keyword]:** Rumus atau data teknis jika ada.
 
 KESIMPULAN:
-- **Poin Utama:** 1 kalimat kesimpulan yang kuat.
+- **Poin Utama:** 1-2 poin kesimpulan strategis.
 
-(Gunakan Bahasa Indonesia, hindari paragraf panjang/wall of text).",
+(Gunakan Bahasa Indonesia sepenuhnya).",
   "keyConcepts": ["[Konsep 1]: Penjelasan spesifik berorientasi kuis (1 kalimat).", "[Konsep 2]: Fakta atau rumus teknis yang krusial (1 kalimat).", "[Konsep 3]: Definisi mendalam yang sering diujikan (1 kalimat)."],
   "extractedText": "Seluruh teks yang berhasil Anda baca/ekstrak dari dokumen ini secara lengkap",
   "confidenceScore": 95,

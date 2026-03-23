@@ -26,11 +26,11 @@ export interface PathStage {
 interface PathMapProps {
   stages: PathStage[];
   title: string;
-  unitNumber?: number;
+  materiNumber?: number;
   theme?: keyof typeof THEMES;
 }
 
-export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: PathMapProps) {
+export function PathMap({ stages, title, materiNumber = 1, theme = "evoca1" }: PathMapProps) {
   const t = THEMES[theme];
 
   return (
@@ -43,7 +43,7 @@ export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: Pat
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">
-              BAGIAN 1, UNIT {unitNumber}
+              {materiNumber % 5 === 0 ? `UJIAN UNIT ${materiNumber / 5}` : `MATERI ${materiNumber}`}
             </p>
             <h3 className="font-black text-xl leading-tight line-clamp-2">
               {title}
@@ -120,7 +120,7 @@ export function PathMap({ stages, title, unitNumber = 1, theme = "evoca1" }: Pat
                   className={cn(
                     "flex items-center justify-center w-20 h-20 rounded-[2.5rem] transition-all duration-300 relative border-b-[6px]",
                     stage.status === "completed"
-                      ? "bg-[#ffc800] border-[#e5a500] text-white"
+                      ? cn(t.bg, t.border, t.text)
                       : stage.status === "current"
                         ? cn(t.bg, t.border, t.text, "shadow-lg scale-110 active:translate-y-1 active:border-b-0")
                         : "bg-[#e5e5e5] border-[#afafaf] text-[#afafaf] cursor-not-allowed",

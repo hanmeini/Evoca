@@ -33,23 +33,40 @@ export async function POST(req: NextRequest) {
     const userData = userDoc.data();
     const lastUpdateStr = userData?.lastStreakUpdate || "";
     const currentStreak = userData?.streak || 0;
+    const dailyProgress = userData?.dailyProgress || {};
 
-    // 1. Same day visit
+    const hasActivityOn = (dateStr: string) => {
+      const d = dailyProgress[dateStr] || {};
+      return (d.documentsUploaded || 0) >= 1 || 
+             (d.messagesSent || 0) >= 5 || 
+             (d.quizzesPerfect || 0) >= 1 || 
+             (d.podcastsFinished || 0) >= 1;
+    };
+
     if (lastUpdateStr === todayStr) {
-      return NextResponse.json({ success: true, streak: currentStreak, message: "Already updated today" });
+      return NextResponse.json({ success: true, streak: currentStreak, message: "Checked today" });
     }
 
     const yesterdayStr = getYesterdayStr();
-    let newStreak = 1;
-    let type = "reset";
+    let newStreak = currentStreak;
+    let type = "maintain";
 
     if (lastUpdateStr === yesterdayStr) {
-      newStreak = currentStreak + 1;
-      type = "increment";
+      // If they had activity yesterday, and this is the first check today, increment?
+      // Actually, many apps only increment AFTER today's goal is met.
+      // But let's increment on first visit IF yesterday was completed.
+      if (hasActivityOn(yesterdayStr)) {
+        newStreak = currentStreak + 1;
+        type = "increment";
+      } else {
+        // Did not finish mission yesterday -> Streak reset
+        newStreak = 1; 
+        type = "reset_no_activity";
+      }
     } else {
-      // Streak broken (bolong) or first update ever
+      // Streak broken (missed yesterday visit entirely)
       newStreak = 1;
-      type = "reset";
+      type = "reset_missed_day";
     }
 
     // Update the streak and timestamp

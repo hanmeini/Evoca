@@ -14,6 +14,9 @@ function AiReaderPathContent({
   const searchParams = useSearchParams();
   const themeParam = searchParams.get("theme") as keyof typeof THEMES | null;
   const theme = themeParam && THEMES[themeParam] ? themeParam : "evoca1";
+  const materi = Number(searchParams.get("materi") || 1);
+  
+  const isBoss = searchParams.get("isBoss") === "true";
   
   const [stages, setStages] = useState<PathStage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,56 +29,72 @@ function AiReaderPathContent({
 
         if (result.success && result.data) {
           const data = result.data;
-          const baseStages: PathStage[] = [
-            {
-              id: 1,
-              type: "summary",
-              label: "Tahap 1: Ringkasan",
-              href: `/ai-reader/${id}/summary`,
-              status: "current",
-            },
-            {
-              id: 2,
-              type: "quiz",
-              label: "Tahap 2: Kuis",
-              href: `/ai-reader/${id}/quiz`,
-              status: "locked",
-            },
-            {
-              id: 3,
-              type: "podcast",
-              label: "Tahap 3: Podcast",
-              href: `/ai-reader/${id}/podcast`,
-              status: "locked",
-            },
-            {
-              id: 4,
-              type: "chat",
-              label: "Tahap 4: Diskusi",
-              href: `/ai-reader/${id}/chat`,
-              status: "locked",
-            },
-          ];
+          
+          if (isBoss) {
+            // Boss Level: Only one stage "Evaluasi"
+            const bossStages: PathStage[] = [
+              {
+                id: 1,
+                type: "quiz",
+                label: "Boss Level: Evaluasi",
+                href: `/ai-reader/${id}/quiz?type=boss`,
+                status: (data.completedStages || []).includes("quiz") ? "completed" : "current",
+              }
+            ];
+            setStages(bossStages);
+          } else {
+            // Normal Level: 4 stages
+            const baseStages: PathStage[] = [
+              {
+                id: 1,
+                type: "summary",
+                label: "Tahap 1: Ringkasan",
+                href: `/ai-reader/${id}/summary`,
+                status: "current",
+              },
+              {
+                id: 2,
+                type: "quiz",
+                label: "Tahap 2: Kuis",
+                href: `/ai-reader/${id}/quiz`,
+                status: "locked",
+              },
+              {
+                id: 3,
+                type: "podcast",
+                label: "Tahap 3: Podcast",
+                href: `/ai-reader/${id}/podcast`,
+                status: "locked",
+              },
+              {
+                id: 4,
+                type: "chat",
+                label: "Tahap 4: Diskusi",
+                href: `/ai-reader/${id}/chat`,
+                status: "locked",
+              },
+            ];
 
-          const completedStages = data.completedStages || [];
+            const completedStages = data.completedStages || [];
 
-          if (completedStages.includes("summary") || data.quizData) {
-            baseStages[0].status = "completed";
-            baseStages[1].status = "current";
-          }
-          if (completedStages.includes("quiz") || data.podcastScript) {
-            baseStages[1].status = "completed";
-            baseStages[2].status = "current";
-          }
-          if (completedStages.includes("podcast") || (data.chatHistory && data.chatHistory.length > 0)) {
-            baseStages[2].status = "completed";
-            baseStages[3].status = "current";
-          }
-          if (completedStages.includes("chat")) {
-            baseStages[3].status = "completed";
-          }
+            if (completedStages.includes("summary") || data.quizData) {
+              baseStages[0].status = "completed";
+              baseStages[1].status = "current";
+            }
+            if (completedStages.includes("quiz") || data.podcastScript) {
+              baseStages[1].status = "completed";
+              baseStages[2].status = "current";
+            }
+            if (completedStages.includes("podcast") || (data.chatHistory && data.chatHistory.length > 0)) {
+              baseStages[2].status = "completed";
+              baseStages[3].status = "current";
+            }
+            if (completedStages.includes("chat")) {
+              baseStages[3].status = "completed";
+            }
 
-          setStages(baseStages);
+            setStages(baseStages);
+          }
         }
       } catch (error) {
         console.error("Error fetching doc for path:", error);
@@ -84,7 +103,7 @@ function AiReaderPathContent({
       }
     }
     fetchDoc();
-  }, [id]);
+  }, [id, isBoss]);
 
   if (loading) {
     const t = THEMES[theme];
@@ -106,7 +125,7 @@ function AiReaderPathContent({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <PathMap stages={stages} title="Misi Belajar" theme={theme} />
+      <PathMap stages={stages} title="Misi Belajar" theme={theme} materiNumber={materi} />
     </div>
   );
 }

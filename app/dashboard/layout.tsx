@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { cn } from "@/src/lib/utils";
+import { cn, getTodayStr } from "@/src/lib/utils";
 import {
   LayoutDashboard,
   Trophy,
@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/src/context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 
 export default function DashboardLayout({
@@ -24,13 +24,31 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logOut } = useAuth();
+  const { user, loading, logOut, userStats } = useAuth();
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login"); // Protect route
     }
   }, [user, loading, router]);
+
+  const hasClaimableMissions = useMemo(() => {
+    if (!userStats) return false;
+    const todayStr = getTodayStr();
+    const d = userStats.dailyProgress?.[todayStr] || {};
+    
+    const templates = [
+      { id: "m1", goal: 1, current: d.documentsUploaded || 0 },
+      { id: "m2", goal: 5, current: d.messagesSent || 0 },
+      { id: "m4", goal: 1, current: d.podcastsFinished || 0 },
+      { id: "m3", goal: 1, current: d.quizzesPerfect || 0 },
+    ];
+
+    return templates.some(m => 
+      m.current >= m.goal && 
+      !userStats.completedMissions?.includes(`claim-${todayStr}-${m.id}`)
+    );
+  }, [userStats]);
 
   if (loading || !user) {
     return (
@@ -43,7 +61,7 @@ export default function DashboardLayout({
   const navItems = [
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
     { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
-    { icon: Target, label: "Misi Harian", href: "/dashboard/missions" },
+    { icon: Target, label: "Misi Harian", href: "/dashboard/missions", hasBadge: hasClaimableMissions },
     { icon: PawPrint, label: "Peliharaan", href: "/dashboard/pet" },
   ];
 
@@ -107,7 +125,12 @@ export default function DashboardLayout({
                           : "text-stone-300 group-hover:text-[#8b5cf6]",
                       )}
                     />
-                    <span>{item.label}</span>
+                    <div className="relative">
+                      <span>{item.label}</span>
+                      {item.hasBadge && (
+                        <span className="absolute -top-1 -right-2 w-2 h-2 bg-orange-500 rounded-full border border-white shadow-sm animate-pulse" />
+                      )}
+                    </div>
                   </div>
                   {isActive && (
                     <div className="w-2 h-2 bg-[#8b5cf6] rounded-full shadow-[0_0_8px_rgba(139,92,246,0.6)]" />

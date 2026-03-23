@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Play,
   Pause,
@@ -9,18 +9,53 @@ import {
   Volume2,
   Loader2,
   XCircle,
+  CheckCircle2,
+  ArrowRight,
   Headphones,
-  ChevronLeft,
+  Sparkles,
+  ArrowLeft,
+  Music,
+  Trophy
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/src/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { cn } from "@/src/lib/utils";
 import { use } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 type ScriptLine = {
   speaker: "A" | "B";
   text: string;
+};
+
+// Simplified and Reactive Waveform
+const ReactiveWaveform = ({ freqData, isPlaying }: { freqData: number[], isPlaying: boolean }) => {
+  return (
+    <div className="flex items-end justify-center gap-1 sm:gap-1.5 h-28 sm:h-32 w-full mb-4 sm:mb-6">
+      {freqData.map((val, i) => {
+        // Center-weighted mapping for mountain shape
+        const mid = 20;
+        const dist = Math.abs(mid - i);
+        const sensitivity = Math.max(0.1, 1 - (dist * 0.04));
+        // Use raw frequency data for heights
+        const height = isPlaying ? Math.max(10, val * sensitivity * 0.6) : 10;
+        
+        return (
+          <motion.div
+            key={i}
+            animate={{ height, opacity: isPlaying ? 1 : 0.1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className={cn(
+              "w-2 sm:w-3 rounded-full bg-gradient-to-t from-purple-500 to-indigo-400 shadow-[0_0_10px_rgba(168,85,247,0.2)]",
+              i < 8 || i > 32 ? "hidden xs:block" : ""
+            )}
+          />
+        );
+      })}
+    </div>
+  );
 };
 
 export default function AiReaderPodcastPage({
@@ -36,17 +71,35 @@ export default function AiReaderPodcastPage({
 
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [trackProgress, setTrackProgress] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
+  
+  // Audio Analysis Setup
+  const [freqData, setFreqData] = useState<number[]>(new Array(40).fill(10));
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+
+  // States for completion
   const [isAlreadyFinishedPodcast, setIsAlreadyFinishedPodcast] = useState(false);
-  const [userXP, setUserXP] = useState(0);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const { user } = useAuth();
   const router = useRouter();
 
-  // Audio Preloading Cache
   const audioCache = useRef<Record<number, string>>({});
   const fetchPromises = useRef<Record<number, Promise<string | null>>>({});
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const lineDuration = 8;
+  const currentTime = Math.floor((currentLineIndex + trackProgress) * lineDuration);
+  const totalDuration = script.length * lineDuration;
 
   const preloadAudio = async (index: number, scriptLines: ScriptLine[]) => {
     if (index >= scriptLines.length) return null;
@@ -91,12 +144,9 @@ export default function AiReaderPodcastPage({
 
         if (data.script && data.script.length > 0) {
           setScript(data.script);
-          
-          // Check if already finished
           const docRes = await fetch(`/api/document/${id}`);
           const docData = await docRes.json();
           if (docData.success && docData.data?.completedStages?.includes("podcast")) {
-            setIsCompleted(true);
             setIsAlreadyFinishedPodcast(true);
           }
         } else {
@@ -104,8 +154,7 @@ export default function AiReaderPodcastPage({
         }
       } catch (err: unknown) {
         console.error(err);
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage);
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
         setIsLoading(false);
       }
@@ -114,9 +163,49 @@ export default function AiReaderPodcastPage({
     loadPodcast();
   }, [id]);
 
+  // Audio Analysis Loop
+  useEffect(() => {
+    if (!isPlaying || !audioRef.current) {
+        setFreqData(new Array(40).fill(10));
+        return;
+    }
+
+    const startAnalysis = () => {
+        if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            analyserRef.current = audioContextRef.current.createAnalyser();
+            analyserRef.current.fftSize = 256;
+            dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount) as Uint8Array<ArrayBuffer>;
+            
+            if (audioRef.current) {
+                sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+                sourceRef.current.connect(analyserRef.current);
+                analyserRef.current.connect(audioContextRef.current.destination);
+            }
+        }
+
+        const updateAnalysis = () => {
+            if (analyserRef.current && dataArrayRef.current) {
+                analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+                const raw = Array.from(dataArrayRef.current).slice(0, 40);
+                setFreqData(raw);
+            }
+            animationRef.current = requestAnimationFrame(updateAnalysis);
+        };
+
+        updateAnalysis();
+    };
+
+    startAnalysis();
+
+    return () => {
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying]);
+
   useEffect(() => {
     if (!isPlaying) {
-      audioRef.current?.pause();
+      if (audioRef.current) audioRef.current.pause();
       return;
     }
 
@@ -128,307 +217,217 @@ export default function AiReaderPodcastPage({
       }
 
       try {
-        // Preload next immediate lines in the background
-        preloadAudio(currentLineIndex + 1, script);
-        if (currentLineIndex + 2 < script.length) {
-          preloadAudio(currentLineIndex + 2, script);
-        }
-
         const audioUrl = await preloadAudio(currentLineIndex, script);
-        if (!audioUrl) throw new Error("Failed connecting to cached audio.");
+        if (!audioUrl) throw new Error("Failed joining cached audio.");
 
         if (audioRef.current) {
-          audioRef.current.pause();
-          // DO NOT revoke URL here, as it's cached for fast scrubbing!
-        }
-
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-
-        audio.onended = async () => {
-          setTrackProgress(0);
-          if (animationRef.current) cancelAnimationFrame(animationRef.current);
-
-          if (currentLineIndex >= script.length - 1) {
-            setIsPlaying(false);
-            if (!isCompleted) {
-              setIsCompleted(true);
-              setUserXP((prev) => prev + 50);
-              const currentUser = user;
-              if (currentUser) {
-                try {
-                  await fetch('/api/progress', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentId: id, stage: "podcast", userId: currentUser.uid, xpGained: 50 }),
-                  });
-                  router.refresh();
-                } catch (e) {
-                  console.error(e);
+            audioRef.current.src = audioUrl;
+            audioRef.current.onended = () => {
+                setTrackProgress(0);
+                if (currentLineIndex >= script.length - 1) {
+                    setIsPlaying(false);
+                    if (!isAlreadyFinishedPodcast) {
+                        setIsAlreadyFinishedPodcast(true);
+                        setShowCompletionPopup(true);
+                        // Save progress
+                        fetch('/api/progress', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documentId: id, stage: "podcast", userId: user?.uid, xpGained: 50 }),
+                        }).then(() => router.refresh());
+                    }
+                } else {
+                    setTimeout(() => setCurrentLineIndex(prev => prev + 1), 300);
                 }
-              }
-            }
-          } else {
-            // Introduce a natural conversational pause (e.g. 400ms) before the next speaker
-            setTimeout(() => {
-              setCurrentLineIndex((prev) => prev + 1);
-            }, 400);
-          }
-        };
+            };
 
-        const smoothlyUpdateProgress = () => {
-          if (audio && audio.duration) {
-            setTrackProgress(audio.currentTime / audio.duration);
-          }
-          if (!audio.paused && !audio.ended) {
-            animationRef.current = requestAnimationFrame(smoothlyUpdateProgress);
-          }
-        };
+            audioRef.current.ontimeupdate = () => {
+                if (audioRef.current) setTrackProgress(audioRef.current.currentTime / audioRef.current.duration);
+            };
 
-        audio.onplay = () => {
-          animationRef.current = requestAnimationFrame(smoothlyUpdateProgress);
-        };
-
-        audio.onpause = () => {
-          if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        };
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.error("Playback interrupted:", err);
-          });
+            await audioRef.current.play();
+            preloadAudio(currentLineIndex + 1, script);
         }
       } catch (err) {
-        console.error("Audio Playback Error:", err);
-        // Skip track and play next on error
-        setTrackProgress(0);
-        setCurrentLineIndex((prev) => prev + 1);
+        console.error("Playback error:", err);
+        setCurrentLineIndex(prev => prev + 1);
       }
     };
 
     playCurrentLine();
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying, currentLineIndex, script]);
+  }, [isPlaying, currentLineIndex, script, isAlreadyFinishedPodcast]);
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center animate-pulse">
-        <div className="w-20 h-20 bg-[#C4B5FD] rounded-3xl flex items-center justify-center mb-6 shadow-xl border-4 border-white animate-bounce-slow">
-          <Loader2 className="w-10 h-10 text-white animate-spin" />
-        </div>
-        <p className="font-serif text-2xl font-black text-stone-900 mb-2">
-          Membuat Siniar AI...
-        </p>
-        <p className="text-stone-500 font-medium">
-          Meringkas dokumen menjadi skrip percakapan interaktif.
-        </p>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center p-6">
+        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+        <h2 className="text-stone-900 font-bold text-xl font-poppins">Menyiapkan Podcast...</h2>
       </div>
     );
   }
 
   if (error || script.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-rose-500 rounded-3xl flex items-center justify-center mb-6 shadow-xl border-4 border-white">
-          <XCircle className="w-10 h-10 text-white" />
-        </div>
-        <p className="font-serif text-2xl font-black text-rose-950 mb-2">
-          Gagal Memuat Siniar
-        </p>
-        <p className="text-rose-600/80 font-medium max-w-sm mx-auto">
-          {error || "AI tidak dapat membuat siniar dari teks ini."}
-        </p>
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6 text-center">
+        <XCircle className="w-12 h-12 text-rose-500 mb-4" />
+        <h2 className="text-stone-900 text-2xl font-black font-poppins">Gagal Memuat Podcast</h2>
+        <p className="text-stone-600 font-medium">{error || "Silakan coba lagi nanti."}</p>
       </div>
     );
   }
 
-  const togglePlayback = () => {
-    setIsPlaying(!isPlaying);
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Link
-        href={`/ai-reader/${id}`}
-        className="inline-flex items-center gap-2 text-stone-500 hover:text-stone-900 font-black uppercase text-xs tracking-widest mb-8 transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4 stroke-[3px]" />
-        Kembali ke Jalur Belajar
-      </Link>
+    <div className="min-h-screen bg-[#f7f6ff] py-8 sm:py-16 px-4 flex flex-col items-center relative overflow-hidden font-sans">
+       <audio ref={audioRef} crossOrigin="anonymous" hidden />
 
-      <div className="bg-[#E0E7FF] border-4 border-white rounded-[3rem] p-8 md:p-14 shadow-2xl overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 -translate-x-1/2 translate-y-1/2 pointer-events-none" />
+       {/* Ambient Bacgkround Blobs */}
+       <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-purple-200/30 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
+       <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-indigo-200/30 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
 
-        <div className="relative z-10 flex flex-col md:flex-row gap-10 items-center">
-          <div className="shrink-0 relative group">
-            <div className="w-48 h-48 md:w-64 md:h-64 rounded-[2rem] shadow-xl bg-gradient-to-br from-indigo-400 to-fuchsia-400 p-2 animate-bounce-slow">
-              <div className="w-full h-full bg-white rounded-3xl flex flex-col items-center justify-center p-6 text-center shadow-inner relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-50/50 via-white to-white" />
-                <Headphones className="w-16 h-16 text-indigo-500 mb-4 relative z-10" />
-                <h3 className="relative z-10 font-serif font-black text-xl text-indigo-950 leading-tight mb-2">
-                  Podcast Belajar
-                </h3>
-                <p className="relative z-10 text-[10px] font-sans font-bold uppercase tracking-widest text-indigo-400 bg-indigo-50 px-3 py-1 rounded-full">
-                  Dibuat oleh AI
-                </p>
-              </div>
-            </div>
-          </div>
+       <div className="max-w-xl w-full relative z-10">
+         <div className="mb-4">
+            <Link
+               href={`/ai-reader/${id}`}
+               className="group inline-flex items-center gap-2 text-stone-500 hover:text-purple-600 font-black text-xs uppercase tracking-widest transition-all"
+             >
+               <ArrowLeft className="w-4 h-4 stroke-[3px]" />
+               Kembali
+             </Link>
+         </div>
 
-          <div className="flex-1 w-full text-stone-900">
-            <div className="mb-10 text-center md:text-left">
-              <h2 className="font-serif text-3xl md:text-4xl font-black mb-3 text-indigo-950">
-                Siniar Ringkasan
-              </h2>
-              <p className="text-indigo-600/80 font-bold tracking-wide">
-                Diskusi 2-orang buatan AI
-              </p>
-            </div>
-
-            <div className="mb-10">
-              <div className="w-full h-3 bg-white/50 border-2 border-white rounded-full overflow-hidden mb-3 md:mb-4 cursor-pointer shadow-sm relative">
-                <div
-                  className="h-full bg-indigo-500 rounded-full relative shadow-md will-change-auto"
-                  style={{
-                    width: `${((currentLineIndex + trackProgress) / Math.max(script.length, 1)) * 100}%`,
-                  }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-indigo-500 rounded-full shadow-lg" />
+         {/* Compact Card Player */}
+         <div className="bg-white/90 backdrop-blur-md border-[4px] border-white rounded-[2.5rem] p-6 sm:px-8 sm:py-10 shadow-xl relative overflow-hidden">
+             
+             <div className="flex flex-col items-center">
+                
+                {/* Vinyl Record */}
+                <div className="relative mb-6">
+                   <motion.div 
+                     animate={isPlaying ? { rotate: 360 } : { rotate: 0 }}
+                     transition={isPlaying ? { duration: 10, repeat: Infinity, ease: "linear" } : { duration: 0.8 }}
+                     className="w-36 h-36 sm:w-44 sm:h-44 rounded-full shadow-2xl relative z-10 overflow-hidden ring-4 ring-white/50"
+                   >
+                     <div className="w-full h-full bg-stone-950 flex flex-col items-center justify-center relative">
+                        <Image src="/vinyl_record.png" alt="Vinyl" fill className="object-cover opacity-80" />
+                        <div className="absolute inset-x-1/2 inset-y-1/2 -ml-6 -mt-6 sm:-ml-8 sm:-mt-8 w-12 h-12 sm:w-16 h-16 bg-purple-600 rounded-full z-20 flex items-center justify-center">
+                           <Music className="w-6 h-6 sm:w-8 h-8 text-white/90" />
+                        </div>
+                     </div>
+                   </motion.div>
                 </div>
-              </div>
-              <div className="flex justify-between text-xs font-bold text-indigo-800 uppercase tracking-widest">
-                <span>Trk {currentLineIndex + 1}</span>
-                <span>Trk {script.length}</span>
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between min-h-[5rem]">
-              {isCompleted ? (
-                <div className="w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                  <div className={cn(
-                    "text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 flex items-center gap-3 mb-6 transform scale-110",
-                    isAlreadyFinishedPodcast ? "bg-stone-400 border-stone-500 opacity-80" : "bg-[#ffc800] border-[#e5a500]"
-                  )}>
-                    <span className="text-xl">{isAlreadyFinishedPodcast ? "✅" : "🎉"}</span>
-                    <div className="flex flex-col items-start leading-none">
-                      <p className="font-black uppercase tracking-widest text-[11px] text-stone-900 border-b border-black/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">
-                        {isAlreadyFinishedPodcast ? "Sudah Selesai" : "Misi Selesai!"}
-                      </p>
-                      <p className="font-bold text-[10px] text-stone-800 font-sans">
-                        {isAlreadyFinishedPodcast ? "Tinjauan Selesai" : "+50 XP Diraih"}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/ai-reader/${id}`}
-                    className="bg-[#58cc02] hover:bg-[#46a302] text-white font-black px-12 py-4 rounded-2xl shadow-lg border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest text-sm flex items-center gap-2 group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
-                    Lanjut ke Peta <ChevronLeft className="w-5 h-5 rotate-180 stroke-[3px]" />
-                  </Link>
+                {/* Info Text */}
+                <div className="text-center mb-6">
+                   {isAlreadyFinishedPodcast && (
+                     <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3 border border-emerald-100">
+                        <Trophy className="w-3 h-3" /> Misi Selesai
+                     </div>
+                   )}
+                   <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 font-poppins tracking-tighter uppercase leading-none">
+                      Podcast Player
+                   </h2>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-6">
-                    <button className="w-12 h-12 bg-white/50 text-indigo-700 rounded-2xl flex items-center justify-center hover:bg-white hover:shadow-md transition-all">
-                      <Volume2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-4 md:gap-6 flex-1 justify-center">
-                    <button
-                      onClick={() => {
-                        setTrackProgress(0);
-                        setCurrentLineIndex(Math.max(0, currentLineIndex - 1));
-                      }}
-                      className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
+
+                {/* Reactive Voice Waveform */}
+                <div className="w-full px-2 mb-4">
+                   <ReactiveWaveform freqData={freqData} isPlaying={isPlaying} />
+                   
+                   {/* Traditional Progress Bar restored below the waveform */}
+                   <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3 border border-white">
+                        <motion.div 
+                            className="h-full bg-purple-500" 
+                            style={{ width: `${((currentLineIndex + trackProgress) / Math.max(script.length, 1)) * 100}%` }}
+                        />
+                   </div>
+
+                   <div className="flex justify-between items-center text-[10px] font-black text-stone-400 tracking-widest font-sans px-1">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(totalDuration)}</span>
+                   </div>
+                </div>
+
+                {/* Single Row Controls */}
+                <div className="flex items-center justify-center gap-6 sm:gap-10 w-full mt-4">
+                    <button 
+                        onClick={() => { setTrackProgress(0); setCurrentLineIndex(Math.max(0, currentLineIndex - 1)); }}
+                        className="w-12 h-12 rounded-2xl bg-stone-50 text-stone-400 flex items-center justify-center hover:bg-stone-100 transition-all border border-stone-200"
                     >
-                      <Rewind className="w-6 h-6" />
+                        <Rewind className="w-5 h-5" />
                     </button>
-                    <button
-                      onClick={togglePlayback}
-                      className="w-20 h-20 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-indigo-700 hover:shadow-xl transition-all shadow-lg border-4 border-white"
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-8 h-8 fill-current" />
-                      ) : (
-                        <Play className="w-8 h-8 fill-current translate-x-0.5" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTrackProgress(0);
-                        setCurrentLineIndex(
-                          Math.min(script.length - 1, currentLineIndex + 1),
-                        );
-                      }}
-                      className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-50 hover:shadow-lg hover:-translate-y-1 transition-all shadow-md"
-                    >
-                      <FastForward className="w-6 h-6" />
-                    </button>
-                  </div>
-                  <div className="w-12" />
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="mt-12 max-w-2xl mx-auto">
-        <h3 className="font-sans text-sm font-bold uppercase tracking-widest text-stone-400 mb-6 text-center">
-          Pratinjau Transkrip
-        </h3>
-        <div className="space-y-4">
-          {script.map((line, idx) => {
-            const isActive = currentLineIndex === idx;
-            return (
-              <div
-                key={idx}
-                className={cn(
-                  "flex gap-4 p-5 rounded-3xl transition-all duration-500",
-                  isActive
-                    ? "bg-white shadow-xl scale-[1.02] border border-stone-100"
-                    : "bg-transparent hover:bg-stone-50",
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center text-sm font-black shadow-sm",
-                    line.speaker === "A"
-                      ? "bg-fuchsia-100 text-fuchsia-600"
-                      : "bg-emerald-100 text-emerald-600",
-                    isActive && "animate-pulse",
-                  )}
-                >
-                  {line.speaker}
+                    <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="w-20 h-20 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all border-[8px] border-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple-500/50"
+                    >
+                        {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current translate-x-1" />}
+                    </button>
+
+                    <button 
+                        onClick={() => { setTrackProgress(0); setCurrentLineIndex(Math.min(script.length - 1, currentLineIndex + 1)); }}
+                        className="w-12 h-12 rounded-2xl bg-stone-50 text-stone-400 flex items-center justify-center hover:bg-stone-100 transition-all border border-stone-200"
+                    >
+                        <FastForward className="w-5 h-5" />
+                    </button>
                 </div>
-                <div className="pt-1">
-                  <p
-                    className={cn(
-                      "leading-relaxed",
-                      isActive
-                        ? "font-bold text-stone-900"
-                        : "font-medium text-stone-600",
-                    )}
-                  >
-                    {line.text}
-                  </p>
-                </div>
+             </div>
+         </div>
+
+         {/* Script Preview */}
+         <div className="mt-10 max-w-xl mx-auto pb-48 px-2">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-6 text-center">📜 Transkrip Podcast</h3>
+            <div className="space-y-4">
+               {script.map((line, idx) => {
+                 const isActive = currentLineIndex === idx;
+                 return (
+                   <motion.div
+                     key={idx}
+                     className={cn(
+                       "flex gap-4 p-5 rounded-3xl transition-all duration-300",
+                       isActive ? "bg-white shadow-xl border border-stone-100" : "bg-transparent opacity-40 grayscale"
+                     )}
+                   >
+                     <div className={cn(
+                       "w-10 h-10 rounded-2xl flex items-center justify-center text-[10px] font-black shrink-0",
+                       line.speaker === "A" ? "bg-purple-100 text-purple-600" : "bg-emerald-100 text-emerald-600"
+                     )}>
+                       {line.speaker}
+                     </div>
+                     <p className={cn(
+                       "leading-relaxed transition-all pt-0.5",
+                       isActive ? "font-bold text-stone-900 text-base" : "font-medium text-stone-500 text-sm"
+                     )}>
+                       {line.text}
+                     </p>
+                   </motion.div>
+                 );
+               })}
+            </div>
+         </div>
+       </div>
+
+       {/* Completion Popup */}
+       <AnimatePresence>
+         {showCompletionPopup && (
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="fixed inset-x-4 bottom-10 z-50 flex justify-center"
+           >
+              <div className="bg-indigo-950 text-white rounded-[2rem] p-8 shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full text-center">
+                 <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-xl">
+                   <Trophy className="w-8 h-8 text-white" />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Selesai!</h3>
+                    <p className="text-indigo-200 text-sm font-bold">+50 XP Berhasil Ditambahkan</p>
+                 </div>
+                 <button onClick={() => setShowCompletionPopup(false)} className="w-full h-14 bg-white text-indigo-950 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-50 transition-all">
+                    Oke, Mantap!
+                 </button>
               </div>
-            );
-          })}
-        </div>
-      </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
     </div>
   );
 }

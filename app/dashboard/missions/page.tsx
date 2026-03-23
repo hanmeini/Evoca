@@ -137,6 +137,18 @@ export default function MissionsPage() {
       }));
   }, [userStats?.completedMissions, userStats?.dailyProgress, activeTab, userStats?.totalXP, todayStr]);
 
+  const isQuestCompletedToday = useMemo(() => {
+    const d = userStats?.dailyProgress?.[todayStr] || {};
+    
+    // Goals: m1: 1, m2: 5, m4: 1, m3: 1
+    const m1Completed = (d.documentsUploaded || 0) >= 1;
+    const m2Completed = (d.messagesSent || 0) >= 5;
+    const m3Completed = (d.quizzesPerfect || 0) >= 1;
+    const m4Completed = (d.podcastsFinished || 0) >= 1;
+
+    return m1Completed || m2Completed || m3Completed || m4Completed;
+  }, [userStats, todayStr]);
+
   const handleClaimReward = async (mission: MissionTemplate) => {
     if (claimingId) return;
     setClaimingId(mission.id);
@@ -227,15 +239,29 @@ export default function MissionsPage() {
 
         {/* Level & Streak Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-           <div className="bg-stone-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+           <div className={cn(
+             "bg-stone-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group transition-all duration-700",
+             !isQuestCompletedToday && "opacity-80 grayscale"
+           )}>
               <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/20 blur-[80px] group-hover:scale-125 transition-transform duration-1000" />
               <div className="relative z-10 flex items-center gap-6">
-                 <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">
-                    <Flame className="w-8 h-8 text-orange-400 fill-orange-400" />
+                 <div className={cn(
+                   "w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 transition-all duration-700",
+                   isQuestCompletedToday ? "scale-110" : "grayscale opacity-50 scale-90"
+                 )}>
+                    <Flame className={cn(
+                      "w-8 h-8 transition-colors duration-700",
+                      isQuestCompletedToday ? "text-orange-400 fill-orange-400 animate-pulse" : "text-stone-500"
+                    )} />
                  </div>
                  <div>
                     <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-1">Beruntun</h3>
-                    <p className="text-3xl font-black">{String(userStats?.streak ?? 1)} Hari Aktif</p>
+                    <p className={cn(
+                      "text-3xl font-black transition-colors duration-500",
+                      isQuestCompletedToday ? "text-white" : "text-stone-400"
+                    )}>
+                      {String(userStats?.streak ?? 1)} Hari {isQuestCompletedToday ? "Aktif" : "Mati"}
+                    </p>
                  </div>
               </div>
            </div>

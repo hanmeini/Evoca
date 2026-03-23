@@ -1,10 +1,10 @@
 "use client";
 
-import { Trophy, Star, Shield, Flame, Crown, Share2 } from "lucide-react";
+import { Trophy, Star, Shield, Flame, Crown, Share2, Triangle } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
 
@@ -23,29 +23,29 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
 
   // 1. Comprehensive Dummy Data for a full-looking leaderboard
+  // 1. Comprehensive Dummy Data with status
   const dummyUsers: UserData[] = [
-    { name: "Andi Saputra", score: 870, avatar: "A" },
-    { name: "Budi Santoso", score: 2115, avatar: "B" },
-    { name: "Citra Lestari", score: 1315, avatar: "C" },
-    { name: "Dimas Anggara", score: 200, avatar: "D" },
-    { name: "Eka Putri", score: 1020, avatar: "E" },
-    { name: "Fajar Pratama", score: 3150, avatar: "F" },
-    { name: "Gita Amalia", score: 720, avatar: "G" },
-    { name: "Hendra Wijaya", score: 900, avatar: "H" },
-    { name: "Indah Permata", score: 250, avatar: "I" },
-    { name: "Joko Susilo", score: 175, avatar: "J" },
-    { name: "Kristina", score: 55, avatar: "K" },
-    { name: "Luthfi", score: 60, avatar: "L" },
-    { name: "Maya", score: 10, avatar: "M" },
-    { name: "Rizky", score: 450, avatar: "R" },
-    { name: "Siti", score: 120, avatar: "S" },
+    { name: "Andi Saputra", score: 1870, avatar: "A", prevRank: 2 },
+    { name: "Budi Santoso", score: 115, avatar: "B", prevRank: 1 },
+    { name: "Citra Lestari", score: 1315, avatar: "C", prevRank: 4 },
+    { name: "Dimas Anggara", score: 1200, avatar: "D", prevRank: 6 },
+    { name: "Eka Putri", score: 1020, avatar: "E", prevRank: 5 },
+    { name: "Fajar Pratama", score: 3150, avatar: "F", prevRank: 3 },
+    { name: "Gita Amalia", score: 920, avatar: "G", prevRank: 9 },
+    { name: "Hendra Wijaya", score: 900, avatar: "H", prevRank: 7 },
+    { name: "Indah Permata", score: 850, avatar: "I", prevRank: 10 },
+    { name: "Joko Susilo", score: 175, avatar: "J", prevRank: 12 },
+    { name: "Kristina", score: 655, avatar: "K", prevRank: 8 },
+    { name: "Luthfi", score: 260, avatar: "L", prevRank: 11 },
+    { name: "Maya", score: 110, avatar: "M", prevRank: 15 },
+    { name: "Rizky", score: 450, avatar: "R", prevRank: 13 },
+    { name: "Siti", score: 120, avatar: "S", prevRank: 14 },
   ];
 
   useEffect(() => {
     async function fetchData() {
       if (!user?.uid) return;
       try {
-        // Fetch real current user stats for total XP
         const statsRes = await fetch(`/api/user-stats?userId=${user.uid}`);
         const statsData = await statsRes.json();
         if (statsData.success) {
@@ -60,49 +60,56 @@ export default function LeaderboardPage() {
     fetchData();
   }, [user]);
 
-  // 1. Current Real User Object
   const myUser: UserData = {
     name: user?.displayName || "Sobat Evoca",
     score: stats.totalXP,
     avatar: user?.displayName?.charAt(0).toUpperCase() || "U",
     photoURL: user?.photoURL,
-    isMe: true
+    isMe: true,
+    // Simulate rank change for me (assume 1 rank higher than score-based calculation for animation)
+    prevRank: 20
   };
 
-  // 2. Combine Real User with Dynamic Data (if any) and Dummy Data
-  // For now, we mix our real self with the dummies
   const allInList = [myUser, ...dummyUsers];
 
-  // 3. Sorting all users by score and assigning ranks
-  const users = allInList
-    .sort((a, b) => b.score - a.score)
-    .map((u, index) => {
-      const currentRank = index + 1;
-      return {
-        ...u,
-        rank: currentRank,
-        status: 'stable',
-        color: index === 0 ? "bg-amber-100 text-amber-600" :
-          index === 1 ? "bg-stone-200 text-stone-600" :
-            index === 2 ? "bg-orange-100 text-orange-600" :
-              "bg-transparent text-stone-400"
-      };
-    });
+  const sortedUsers = useMemo(() => {
+    return allInList
+      .sort((a, b) => b.score - a.score)
+      .map((u, index) => {
+        const currentRank = index + 1;
+        let status: 'up' | 'down' | 'stable' = 'stable';
+        
+        if (u.prevRank) {
+          if (u.prevRank > currentRank) status = 'up';
+          else if (u.prevRank < currentRank) status = 'down';
+        }
+
+        return {
+          ...u,
+          rank: currentRank,
+          status,
+          color: index === 0 ? "bg-amber-100 text-amber-600" :
+            index === 1 ? "bg-stone-200 text-stone-600" :
+              index === 2 ? "bg-orange-100 text-orange-600" :
+                "bg-transparent text-stone-400"
+        };
+      });
+  }, [allInList]);
 
   const topThree = [
-    users.find(u => u.rank === 2),
-    users.find(u => u.rank === 1),
-    users.find(u => u.rank === 3),
+    sortedUsers.find((u: any) => u.rank === 2),
+    sortedUsers.find((u: any) => u.rank === 1),
+    sortedUsers.find((u: any) => u.rank === 3),
   ].filter(Boolean);
 
-  const others = users.filter(u => u.rank > 3);
+  const others = sortedUsers.filter((u: any) => u.rank > 3);
 
-  // 4. Highlighted User Bar
-  const rankedMe = users.find(u => u.isMe);
+  const rankedMe = sortedUsers.find((u: any) => u.isMe);
   const currentUser = {
-    ...myUser,
+    ...rankedMe,
     rank: rankedMe?.rank || "-",
-    status: "stable",
+    score: rankedMe?.score || 0,
+    status: rankedMe?.status || "stable",
     color: "bg-indigo-600 text-white",
   };
 
@@ -227,15 +234,27 @@ export default function LeaderboardPage() {
                 >
                   <div className="flex items-center gap-4 md:gap-8">
                     {/* Rank Indicator */}
-                    <div className="flex items-center gap-2 min-w-[50px]">
-                      <span className="font-black text-stone-900 text-base md:text-lg">{u.rank}</span>
-                      <div className={cn(
-                        "w-3 h-3 flex items-center justify-center text-[10px] font-bold",
-                        u.status === "up" ? "text-green-500" :
-                          u.status === "down" ? "text-red-500" : "text-stone-300"
-                      )}>
-                        {u.status === "up" ? "▲" : u.status === "down" ? "▼" : "—"}
-                      </div>
+                    <div className="flex items-center gap-1.5 min-w-[65px]">
+                      <span className="font-black text-stone-900 text-lg md:text-xl tabular-nums">{u.rank}</span>
+                      <AnimatePresence>
+                        {u.status !== "stable" && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.5, y: u.status === "up" ? 5 : -5 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className={cn(
+                              "flex items-center justify-center transition-all",
+                              u.status === "up" ? "text-emerald-500" : "text-rose-500"
+                            )}
+                          >
+                            <Triangle 
+                              className={cn(
+                                "w-3 h-3 fill-current", 
+                                u.status === "down" && "rotate-180"
+                              )} 
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* User Info */}
@@ -272,15 +291,28 @@ export default function LeaderboardPage() {
               <div className="bg-[#ffaa00] text-purple-950 rounded-2xl p-2 flex items-center justify-between shadow-2xl relative border border-[#e69900]">
                 <div className="flex items-center gap-4 md:gap-8">
                   {/* My Rank */}
-                  <div className="flex items-center gap-2 min-w-[50px]">
-                    <span className="font-black text-stone-900 text-base md:text-lg">{currentUser.rank === "-" ? "99+" : currentUser.rank}</span>
-                    <div className={cn(
-                      "w-3 h-3 flex items-center justify-center text-[10px] font-bold",
-                      currentUser.status === "up" ? "text-green-600" :
-                        currentUser.status === "down" ? "text-red-600" : "text-purple-900/40"
-                    )}>
-                      {currentUser.status === "up" ? "▲" : currentUser.status === "down" ? "▼" : "—"}
-                    </div>
+                  <div className="flex items-center gap-2 min-w-[70px] relative px-2">
+                    <span className="font-black text-stone-900 text-lg md:text-xl tabular-nums">
+                      {currentUser.rank || "99+"}
+                    </span>
+                    <AnimatePresence>
+                      {currentUser.status !== "stable" && (
+                        <motion.div
+                          animate={{ 
+                            scale: [1, 1.3, 1],
+                            y: currentUser.status === "up" ? -2 : 2
+                          }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className={cn(
+                            "flex items-center justify-center p-0.5 rounded-full bg-white/30",
+                            currentUser.status === "up" ? "text-emerald-700" : "text-rose-700"
+                          )}
+                        >
+                          <Triangle className={cn("w-3 h-3 fill-current", currentUser.status === "down" && "rotate-180")} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
                   </div>
 
                   {/* My User Info */}
@@ -295,7 +327,7 @@ export default function LeaderboardPage() {
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-stone-800 text-base md:text-xl">You</span>
+                      <span className="font-extrabold text-stone-900 text-base md:text-xl">Kamu</span>
                     </div>
                   </div>
                 </div>
@@ -304,8 +336,8 @@ export default function LeaderboardPage() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-3 bg-white/40 px-5 py-2.5 rounded-2xl border border-white/30 shadow-inner">
                     <Crown className="w-5 h-5 text-purple-950/70 fill-purple-950/50" />
-                    <span className="font-black text-purple-950 text-lg md:text-xl">
-                      <CountingNumber value={currentUser.score} />
+                    <span className="font-black text-purple-950 text-xl md:text-2xl tabular-nums">
+                      <CountingNumber value={currentUser.score || 0} />
                     </span>
                   </div>
                   <button className="w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-md text-purple-950 rounded-full flex items-center justify-center hover:bg-white/30 transition-all border border-white/30 shrink-0">
