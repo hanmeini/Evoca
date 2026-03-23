@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/src/lib/utils";
-import { Check, LucideIcon, Sword, Gift } from "lucide-react";
+import { Check, LucideIcon, Sword, Gift, Zap } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,8 +13,9 @@ interface PathNodeProps {
   icon: LucideIcon;
   status: "locked" | "current" | "completed";
   sideOffset?: "left" | "right" | "center";
-  href: string;
-  specialType?: "monster" | "chest";
+  href?: string;
+  onClick?: () => void;
+  specialType?: "monster" | "chest" | "gem";
   isTooltipVisible?: boolean;
   theme?: "evoca1" | "evoca2" | "evoca3" | "evoca4" | "evoca5";
   subProgress?: string; // e.g. "1/4"
@@ -37,6 +38,7 @@ export function PathNode({
   status,
   sideOffset = "center",
   href,
+  onClick,
   specialType,
   isTooltipVisible = true,
   theme = "evoca1",
@@ -68,14 +70,81 @@ export function PathNode({
       : cn(t.bg, t.text, "border-b-[5px]", t.border, "shadow-lg ring-[6px] ring-white/20 shadow-black/5"),
   );
 
-  const ringColor = isCompleted ? "#f97316" : t.ring;
+  const ringColor = t.ring;
 
   // Use dummy icons if special type is set
-  const NodeIcon = specialType === "monster" ? Sword : specialType === "chest" ? Gift : Icon;
+  const NodeIcon = specialType === "monster" ? Sword : specialType === "chest" ? Gift : specialType === "gem" ? Gift : Icon;
+
+  const renderContent = () => {
+    const inner = (
+      <div className="flex items-center justify-center transition-transform group-hover:scale-110 relative z-10">
+        <NodeIcon
+          className={cn(
+            "w-6 h-6 outline-none",
+            isNew ? "stroke-[4px]" : "stroke-[3px]",
+          )}
+        />
+      </div>
+    );
+
+    const checkmark = (
+      <AnimatePresence>
+        {isCompleted && (
+          <motion.div
+            initial={{ scale: 0, rotate: -45 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 15,
+              delay: 1.5
+            }}
+            className="absolute -top-1 -right-1 w-6 h-6 bg-white border-2 rounded-full flex items-center justify-center shadow-sm z-20"
+            style={{ borderColor: t.ring, color: t.ring }}
+          >
+            <Check className="w-4 h-4 stroke-[4px]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+
+    if (isLocked) {
+      return (
+        <div className={circleClasses}>
+          <NodeIcon className="w-6 h-6 opacity-30" />
+        </div>
+      );
+    }
+
+    if (onClick) {
+      return (
+        <button onClick={(e) => { e.preventDefault(); onClick(); }} className={cn(circleClasses, "cursor-pointer outline-none border-none")}>
+          {inner}
+          {checkmark}
+        </button>
+      );
+    }
+
+    if (href) {
+      return (
+        <Link href={href} className={circleClasses}>
+          {inner}
+          {checkmark}
+        </Link>
+      );
+    }
+
+    return (
+      <div className={circleClasses}>
+        {inner}
+        {checkmark}
+      </div>
+    );
+  };
 
   return (
     <div className={containerClasses}>
-      {/* "MULAI" Tooltip for Current Node (Hides on hover to make room for the info bubble) */}
+      {/* "MULAI" Tooltip for Current Node */}
       {isCurrent && isTooltipVisible && (
         <motion.div
           animate={{
@@ -89,7 +158,7 @@ export function PathNode({
           className="absolute -top-10 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest z-[60] shadow-lg group-hover:opacity-0 group-hover:-translate-y-2 transition-opacity duration-300"
           style={{ backgroundColor: t.bgValue }}
         >
-          {specialType === "monster" ? "LAWAN!" : specialType === "chest" ? "BUKA!" : "MULAI"}
+          {specialType === "monster" ? "LAWAN!" : specialType === "chest" ? "BUKA!" : specialType === "gem" ? "DAPETIN!" : "MULAI"}
           <div
             className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45"
             style={{ backgroundColor: t.bgValue }}
@@ -103,7 +172,6 @@ export function PathNode({
         {!isNew && !isLocked && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 flex items-center justify-center">
             <svg viewBox="0 0 84 84" className="w-[84px] h-[84px] transform -rotate-90 drop-shadow-sm">
-              {/* Background Track - Continuous circle */}
               <circle
                 stroke="rgba(0,0,0,0.06)"
                 fill="transparent"
@@ -112,7 +180,6 @@ export function PathNode({
                 cx="42"
                 cy="42"
               />
-              {/* Progress Bar - Layered over the track */}
               <motion.circle
                 stroke={ringColor}
                 fill="transparent"
@@ -134,46 +201,8 @@ export function PathNode({
           </div>
         )}
 
-        {/* Main Node Circle */}
-        {isLocked ? (
-          <div className={circleClasses}>
-            <NodeIcon className="w-6 h-6 opacity-30" />
-          </div>
-        ) : (
-          <Link href={href} className={circleClasses}>
-            <div
-              className="flex items-center justify-center transition-transform group-hover:scale-110 relative z-10"
-            >
-              <NodeIcon
-                className={cn(
-                  "w-6 h-6 outline-none",
-                  isNew ? "stroke-[4px]" : "stroke-[3px]",
-                  // When the node is just solid color, text handles icon color, except special ones if we want.
-                  // Default text implies text is white, so icons will be white.
-                )}
-              />
-            </div>
-
-            {/* Status Indicator (Checkmark) */}
-            <AnimatePresence>
-              {isCompleted && (
-                <motion.div
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 15,
-                    delay: 1.5 // Muncul tepat setelah ring penuh (duration 1.5)
-                  }}
-                  className="absolute -top-1 -right-1 w-6 h-6 bg-white border-2 border-[#f97316] rounded-full flex items-center justify-center text-[#f97316] shadow-sm z-20"
-                >
-                  <Check className="w-4 h-4 stroke-[4px]" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Link>
-        )}
+        {/* Main Node Content */}
+        {renderContent()}
       </div>
 
       {/* Hover Info Bubble Chat - Tiny version */}
@@ -197,7 +226,7 @@ export function PathNode({
                   subProgress === "2/4" ? "Tahap 3: Podcast" :
                   subProgress === "3/4" ? "Tahap 4: Chat" :
                   "Materi") :
-                  (specialType === "monster" ? "Bos" : specialType === "chest" ? "Hadiah" : "Materi")
+                  (specialType === "monster" ? "Bos" : specialType === "chest" ? "Hadiah" : specialType === "gem" ? "Permata" : "Materi")
               )}
             </span>
             <h3 className="text-[10px] font-bold text-stone-900 leading-tight px-1 line-clamp-1">

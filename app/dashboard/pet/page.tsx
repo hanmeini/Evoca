@@ -22,12 +22,16 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-import { cn } from "@/src/lib/utils";
+import { cn, getTodayStr } from "@/src/lib/utils";
+import { useAuth } from "@/src/context/AuthContext";
+import { useMemo } from "react";
 
 export default function PetPage() {
-  const [streak, setStreak] = useState(1);
-  const [xp, setXp] = useState(750);
-  const [level, setLevel] = useState(5);
+  const { userStats } = useAuth();
+  const streak = userStats?.streak || 1;
+  const gems = userStats?.gems || 0;
+  const [xp, setXp] = useState(userStats?.totalXP || 0);
+
   const [isInteracting, setIsInteracting] = useState(false);
   
   type InteractionType = "pet" | "feed" | "play";
@@ -45,6 +49,20 @@ export default function PetPage() {
     { label: "Mythic", streakCount: 30, icon: Sparkles, color: "text-rose-500", bg: "bg-rose-50", labelId: "Celestial Guardian" },
   ];
 
+  const todayStr = getTodayStr();
+  const isQuestCompletedToday = useMemo(() => {
+    const d = userStats?.dailyProgress?.[todayStr] || {};
+    
+    // Goals from missions: m1: 1, m2: 5, m4: 1, m3: 1
+    const m1Completed = (d.documentsUploaded || 0) >= 1;
+    const m2Completed = (d.messagesSent || 0) >= 5;
+    const m3Completed = (d.quizzesPerfect || 0) >= 1;
+    const m4Completed = (d.podcastsFinished || 0) >= 1;
+
+    return m1Completed || m2Completed || m3Completed || m4Completed;
+  }, [userStats, todayStr]);
+
+  const level = Math.floor(xp / 100) + 1;
   const currentEvo = [...evolutions].reverse().find(e => streak >= e.streakCount) || evolutions[0];
 
   const handleInteraction = (type: InteractionType) => {
@@ -53,8 +71,8 @@ export default function PetPage() {
     setInteractionType(type);
     
     // Simulate growth/happiness
-    if (type === "feed") setXp(prev => Math.min(prev + 20, maxXp));
-    if (type === "play") setXp(prev => Math.min(prev + 10, maxXp));
+    if (type === "feed") setXp((prev: number) => Math.min(prev + 20, maxXp));
+    if (type === "play") setXp((prev: number) => Math.min(prev + 10, maxXp));
 
     setTimeout(() => {
       setIsInteracting(false);
@@ -73,13 +91,16 @@ export default function PetPage() {
           </Link>
           
           <div className="flex items-center gap-6">
-             <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-                <span className="font-black text-xs text-orange-500">{streak} Hari</span>
+             <div className={cn(
+               "flex items-center gap-2 transition-all duration-500",
+               !isQuestCompletedToday && "grayscale opacity-50"
+             )}>
+                <Flame className={cn("w-4 h-4 transition-colors", isQuestCompletedToday ? "text-orange-500 fill-orange-500" : "text-stone-400")} />
+                <span className={cn("font-black text-xs transition-colors", isQuestCompletedToday ? "text-orange-500" : "text-stone-400")}>{streak} Hari</span>
              </div>
              <div className="flex items-center gap-2">
                 <span className="text-sm">💎</span>
-                <span className="font-black text-xs text-indigo-500">505</span>
+                <span className="font-black text-xs text-indigo-500">{gems}</span>
              </div>
           </div>
         </div>
@@ -103,7 +124,10 @@ export default function PetPage() {
                   loop
                   muted
                   playsInline
-                  className="w-full h-full object-contain"
+                  className={cn(
+                    "w-full h-full object-contain transition-all duration-700",
+                    !isQuestCompletedToday && "grayscale opacity-40 scale-90"
+                  )}
                 />
                 
                 {/* Interaction feedback */}
@@ -139,10 +163,13 @@ export default function PetPage() {
           <div className="w-full max-w-sm mt-12 bg-stone-50 border-2 border-stone-100 rounded-[3rem] p-10 shadow-sm relative">
              <div className="flex items-center justify-between mb-8">
                 <h3 className="font-black text-[10px] uppercase tracking-[0.25em] text-stone-400 font-sans">Streak Milestone</h3>
-                <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-stone-100">
-                   <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
-                   <span className="font-black text-xs text-stone-900">{streak} / 7</span>
-                </div>
+                 <div className={cn(
+                   "flex items-center gap-2 bg-white px-3 py-1 rounded-xl border transition-all duration-500",
+                   isQuestCompletedToday ? "border-orange-100" : "border-stone-100 grayscale opacity-50"
+                 )}>
+                    <Flame className={cn("w-3.5 h-3.5 transition-colors", isQuestCompletedToday ? "text-orange-500 fill-orange-500" : "text-stone-400")} />
+                    <span className={cn("font-black text-xs transition-colors", isQuestCompletedToday ? "text-stone-900" : "text-stone-400")}>{streak} Aktif</span>
+                 </div>
              </div>
              
              <div className="flex justify-between items-center px-2">
@@ -155,8 +182,10 @@ export default function PetPage() {
                           backgroundColor: streak > i ? "#ff9600" : "#ffffff" 
                        }}
                        className={cn(
-                          "w-5 h-5 rounded-full border-2 transition-all",
-                          streak > i ? "border-orange-400 shadow-[0_0_15px_rgba(255,150,0,0.4)]" : "border-stone-200"
+                          "w-5 h-5 rounded-full border-2 transition-all duration-500",
+                          (i < streak && (i !== (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) || isQuestCompletedToday))
+                            ? "bg-orange-500 border-orange-400 shadow-[0_0_15px_rgba(255,150,0,0.4)]" 
+                            : "bg-white border-stone-200"
                        )}
                      />
                      <span className="text-[9px] font-black text-stone-300 uppercase tracking-tighter">{["S", "S", "R", "K", "J", "S", "M"][i]}</span>

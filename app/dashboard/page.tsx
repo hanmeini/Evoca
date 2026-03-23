@@ -3,20 +3,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { PathNode, THEMES } from "@/src/components/reader/PathNode";
-import {
-  Bell,
-  Sparkles,
-  Search,
-  Plus,
-  BookOpen,
-  Trophy,
-  Flame,
-  MessageCircle,
-  Zap,
-} from "lucide-react";
+
 import Link from "next/link";
 import { useAuth } from "@/src/context/AuthContext";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, Sparkles, Search, Plus, BookOpen, Trophy, Flame, MessageCircle, Zap, Gift } from "lucide-react";
 
 interface DocumentHistory {
   id: string;
@@ -94,6 +87,8 @@ export default function DashboardOverviewPage() {
   } = useAuth();
   const [mascotQuote, setMascotQuote] = useState("Halo!");
   const [isReadyToAnimate, setIsReadyToAnimate] = useState(false);
+  const [showClaimReward, setShowClaimReward] = useState<{show: boolean, amount: number}>({ show: false, amount: 0 });
+  const router = useRouter();
 
   const triggerMotivation = () => {
     const name = user?.displayName
@@ -196,7 +191,22 @@ export default function DashboardOverviewPage() {
     return -1;
   }, [renderedNodes]);
 
-  // Current Unfinished Daily Mission Logic
+  // Check if any REAL quest (other than login) is completed today
+  // Used to determine if the streak "fire" should be active/orange or inactive/grayscale
+  const isQuestCompletedToday = useMemo(() => {
+    const todayStr = getTodayStr();
+    const d = userStats?.dailyProgress?.[todayStr] || {};
+
+    // Goals from mission templates: m1: 1, m2: 5, m4: 1, m3: 1
+    const m1Completed = (d.documentsUploaded || 0) >= 1;
+    const m2Completed = (d.messagesSent || 0) >= 5;
+    const m3Completed = (d.quizzesPerfect || 0) >= 1;
+    const m4Completed = (d.podcastsFinished || 0) >= 1;
+
+    return m1Completed || m2Completed || m3Completed || m4Completed;
+  }, [userStats, getTodayStr()]);
+
+  // Current Unfinished Daily Mission Logic (for the mini mission card)
   const currentDailyMission = useMemo(() => {
     const todayStr = getTodayStr();
     const d = userStats?.dailyProgress?.[todayStr] || {};
@@ -247,12 +257,7 @@ export default function DashboardOverviewPage() {
         false,
     }));
 
-    // Find the first one that is NOT claimed (since even if completed, it might not be claimed)
-    // Actually the user said "misi yang belum selesai", which normally means not completed.
-    // If it's completed but not claimed, we can still show it or show the next one.
-    // Let's show the first mission that is NOT completed.
-    // If all are completed, but some are not claimed, we could show those.
-    // But the most common meaning of "belum selesai" is not reached the goal.
+
 
     return (
       missions.find((m) => !m.completed) || missions.find((m) => !m.claimed)
@@ -303,11 +308,17 @@ export default function DashboardOverviewPage() {
               <div className="flex items-center gap-4">
                 <Link
                   href="/dashboard/missions"
-                  className="flex items-center gap-2 group cursor-pointer"
-                  title="Streak"
+                  className={cn(
+                    "flex items-center gap-2 group cursor-pointer transition-all duration-500",
+                    !isQuestCompletedToday && "grayscale contrast-125 opacity-70"
+                  )}
+                  title={isQuestCompletedToday ? "Streak Aktif!" : "Selesaikan misi untuk menyalakan api!"}
                 >
-                  <span className="text-xl">🔥</span>
-                  <span className="text-sm font-black text-[#ff9600] group-hover:scale-110 transition-transform">
+                  <span className={cn("text-xl transition-transform", isQuestCompletedToday && "animate-pulse scale-110")}>🔥</span>
+                  <span className={cn(
+                    "text-sm font-black transition-colors",
+                    isQuestCompletedToday ? "text-[#ff9600]" : "text-stone-400"
+                  )}>
                     {userStats.streak || 1}
                   </span>
                 </Link>
@@ -353,9 +364,9 @@ export default function DashboardOverviewPage() {
           <div className="relative flex flex-col items-center">
             <div className="relative w-full max-w-md flex flex-col items-center">
               {loading ? (
-                <div className="flex flex-col items-center gap-6 py-24">
+                <div className="flex flex-col items-center justify-center gap-6 min-h-[60vh] w-full">
                   <div className="w-12 h-12 border-4 border-[#8b5cf6] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-[10px] font-black text-[#8b5cf6] uppercase tracking-widest">
+                  <p className="text-[10px] font-black text-[#8b5cf6] uppercase tracking-widest text-center">
                     Membangun Jalur Belajarmu...
                   </p>
                 </div>
@@ -421,10 +432,10 @@ export default function DashboardOverviewPage() {
                           progress = 0;
                         }
 
-                        // Units of 5
+                        // Units and positions
                         const unitIndex = Math.floor(idx / 5);
                         const positionInUnit = idx % 5;
-                        const isMonsterNode = positionInUnit === 4;
+                        const isRewardNode = (idx + 1) % 5 === 0;
 
                         // Configuration for this mascot block
                         const safeUnitIdx = Math.min(
@@ -438,6 +449,34 @@ export default function DashboardOverviewPage() {
                           | "evoca3"
                           | "evoca4"
                           | "evoca5";
+
+                        const handleClaimReward = async () => {
+                          if (status === "locked" || status === "completed") return;
+
+                          try {
+                            const res = await fetch("/api/progress", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                documentId: doc.id,
+                                stage: "reward",
+                                userId: user?.uid,
+                                gemsGained: 50,
+                                xpGained: 50
+                              }),
+                            });
+
+                            if (res.ok) {
+                              setShowClaimReward({ show: true, amount: 50 });
+                              setTimeout(() => {
+                                setShowClaimReward({ show: false, amount: 0 });
+                                router.refresh();
+                              }, 3000);
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        };
 
                         // Mascot for a unit is colored if the user has reached any mission in that unit
                         const isBlockUnlocked =
@@ -519,25 +558,18 @@ export default function DashboardOverviewPage() {
                             >
                               <PathNode
                                 type={isDummy ? "new" : "document"}
-                                progress={progress}
-                                subProgress={getSubProgress(doc)}
-                                title={doc.metadata?.title || doc.fileName}
-                                icon={isDummy ? Plus : BookOpen}
+                                progress={isRewardNode ? (status === "completed" ? 100 : 0) : progress}
+                                subProgress={isRewardNode ? (status === "completed" ? "DIKLAIM" : "BARU") : getSubProgress(doc)}
+                                title={isRewardNode ? "Harta Karun" : (doc.metadata?.title || doc.fileName)}
+                                icon={isDummy ? Plus : (isRewardNode ? Gift : BookOpen)}
                                 status={status}
                                 href={
-                                  isUnlocked
-                                    ? isDummy
-                                      ? "/dashboard/new"
-                                      : `/ai-reader/${doc.id}?theme=${theme}`
-                                    : "#"
-                                }
-                                specialType={
-                                  isDummy
-                                    ? isMonsterNode
-                                      ? "monster"
-                                      : "chest"
+                                  isUnlocked && !isRewardNode
+                                    ? (isDummy ? "/dashboard/new" : `/ai-reader/${doc.id}?theme=${theme}&materi=${idx + 1}`)
                                     : undefined
                                 }
+                                onClick={isRewardNode ? handleClaimReward : undefined}
+                                specialType={isRewardNode ? "gem" : (isDummy ? "chest" : undefined)}
                                 isTooltipVisible={status === "current"}
                                 theme={theme}
                                 pdfUrl={doc.fileUrl}
@@ -545,6 +577,7 @@ export default function DashboardOverviewPage() {
                             </div>
                           </div>
                         );
+
                       });
                     })()}
                   </div>
@@ -558,23 +591,45 @@ export default function DashboardOverviewPage() {
             {/* Streak Card - Video Mascot Edition */}
             <div className="bg-white border-2 border-stone-200 rounded-[2rem] p-6 text-center">
               {/* Mascot Video */}
-              <div className="w-48 h-48 mx-auto relative mb-4">
+              <div className={cn(
+                "w-48 h-48 mx-auto relative mb-4 transition-all duration-700 ease-in-out",
+                !isQuestCompletedToday ? "grayscale opacity-40 scale-90" : "scale-100"
+              )}>
                 <video
                   src="/pet/yeti/mascot-yeti.mp4"
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="w-full h-full object-contain mix-blend-multiply hover-wave"
+                  className={cn(
+                    "w-full h-full object-contain mix-blend-multiply hover-wave",
+                    isQuestCompletedToday && "animate-fire-active"
+                  )}
                 />
+                {/* Visual indicator that it's "off" */}
+                {!isQuestCompletedToday && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                      <Flame className="w-6 h-6 text-stone-400" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col items-center gap-2 mb-6">
-                <h3 className="text-xl font-black text-stone-900 uppercase tracking-tight leading-none">
+                <h3 className={cn(
+                  "text-xl font-black uppercase tracking-tight leading-none transition-colors duration-500",
+                  isQuestCompletedToday ? "text-stone-900" : "text-stone-400"
+                )}>
                   Streak {userStats.streak || 1} Hari
                 </h3>
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                  {userStats.streak > 1 ? "Pertahankan!" : "Luar biasa!"} 🔥
+                <p className={cn(
+                  "text-[10px] font-black uppercase tracking-widest transition-colors duration-500",
+                  isQuestCompletedToday ? "text-orange-500" : "text-stone-300"
+                )}>
+                  {isQuestCompletedToday
+                    ? (userStats.streak > 1 ? "Pertahankan!" : "Luar biasa! 🔥")
+                    : "Selesaikan Misi Hari Ini"}
                 </p>
               </div>
 
@@ -598,8 +653,10 @@ export default function DashboardOverviewPage() {
                   }).format(currentDayDate);
 
                   // Check if there was activity on this day
-                  const hasActivity = !!userStats.dailyProgress?.[dateStr];
-                  const isHighlighted = hasActivity || isToday;
+                  const d = userStats?.dailyProgress?.[dateStr] || {};
+                  const hasActivity = (d.documentsUploaded || 0) >= 1 || (d.messagesSent || 0) >= 5 || (d.quizzesPerfect || 0) >= 1 || (d.podcastsFinished || 0) >= 1;
+
+                  const isCompleted = isToday ? isQuestCompletedToday : hasActivity;
 
                   return (
                     <div
@@ -609,12 +666,15 @@ export default function DashboardOverviewPage() {
                       <div
                         className={cn(
                           "w-full aspect-square rounded-xl flex items-center justify-center text-[10px] font-black transition-all",
-                          isHighlighted
+                          isCompleted
                             ? "bg-orange-500 text-white shadow-[0_4px_0_0_#ea580c] -translate-y-1"
-                            : "bg-stone-100 text-stone-400 border-b-4 border-stone-200",
+                            : (isToday
+                              ? "bg-white border-2 border-orange-500 text-orange-500"
+                              : "bg-stone-100 text-stone-400 border-b-4 border-stone-200"
+                            ),
                         )}
                       >
-                        {isToday ? "🔥" : hasActivity ? "✅" : day}
+                        {isToday && isQuestCompletedToday ? "🔥" : day}
                       </div>
                     </div>
                   );
@@ -668,69 +728,62 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
 
-            {/* Daily Misi Card */}
-            <div className="bg-white border-2 border-stone-200 rounded-[2rem] p-6 shadow-sm hover:translate-y-1 transition-all overflow-hidden relative group">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest">
+            {/* Daily Misi Card - Vibrant Yellow/Gold Container */}
+            <div className="bg-linear-to-br from-[#ffc800] to-[#ff9600] border-2 border-white/20 rounded-[2rem] p-6 shadow-xl shadow-amber-500/20 hover:translate-y-1 transition-all overflow-hidden relative group">
+              {/* Background Decoration */}
+              <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-1000" />
+              <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-amber-200/20 rounded-full blur-2xl" />
+
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <h3 className="text-sm font-black text-amber-950 uppercase tracking-widest drop-shadow-sm">
                   Misi Harian
                 </h3>
-                <Link
-                  href="/dashboard/missions"
-                  className="text-[10px] font-black text-[#58cc02] uppercase"
-                >
+                <Link href="/dashboard/missions" className="text-[10px] font-black text-amber-900/80 hover:text-amber-950 uppercase tracking-wider transition-colors">
                   LIHAT SEMUA
                 </Link>
               </div>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+              <div className="space-y-4 relative z-10">
+                <div className="p-4 bg-white/30 backdrop-blur-md border border-white/40 rounded-3xl shadow-inner">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
                       <span className="text-lg">
                         {currentDailyMission ? currentDailyMission.icon : "🎉"}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest truncate">
-                        {currentDailyMission
-                          ? "Misi Berikutnya"
-                          : "Luar Biasa!"}
+                      <p className="text-[9px] font-black text-amber-900/60 uppercase tracking-widest truncate">
+                        {currentDailyMission ? "Misi Berikutnya" : "Luar Biasa!"}
                       </p>
-                      <p className="text-xs font-black text-indigo-900 truncate">
+                      <p className="text-xs font-black text-amber-950 truncate">
                         {currentDailyMission
                           ? currentDailyMission.title
-                          : "Semua Misi Selesai!"}
+                          : "Semua Misi Selesai!"
+                        }
                       </p>
                     </div>
                   </div>
 
                   {currentDailyMission && (
-                    <div className="mt-3 space-y-1">
-                      <div className="flex justify-between text-[9px] font-bold text-indigo-400 uppercase tracking-tighter">
+                    <div className="mt-4 space-y-1.5">
+                      <div className="flex justify-between text-[9px] font-bold text-amber-900/70 uppercase tracking-widest">
                         <span>Progress</span>
                         <span>
                           {currentDailyMission.current}/
                           {currentDailyMission.goal}
                         </span>
                       </div>
-                      <div className="h-1.5 bg-white rounded-full overflow-hidden shadow-inner">
+                      <div className="h-2 bg-black/5 rounded-full overflow-hidden shadow-inner">
                         <div
-                          className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${Math.min((currentDailyMission.current / currentDailyMission.goal) * 100, 100)}%`,
-                          }}
+                          className="h-full bg-white rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+                          style={{ width: `${Math.min((currentDailyMission.current / currentDailyMission.goal) * 100, 100)}%` }}
                         />
                       </div>
                     </div>
                   )}
 
-                  <Link
-                    href="/dashboard/missions"
-                    className="mt-4 w-full py-3 bg-[#58cc02] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center"
-                  >
-                    {currentDailyMission
-                      ? "CEK MISI SEKARANG"
-                      : "KLAIM HADIAHMU"}
+                  <Link href="/dashboard/missions" className="mt-4 w-full py-3 bg-white text-amber-500 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center border-b-4 border-amber-100">
+                    {currentDailyMission ? "CEK MISI SEKARANG" : "KLAIM HADIAHMU"}
                   </Link>
                 </div>
               </div>
@@ -753,6 +806,43 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Success Celebration Overlay */}
+      <AnimatePresence>
+        {showClaimReward.show && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+          >
+            <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden">
+               <div className="relative z-10">
+                  <div className="text-6xl mb-4">💎</div>
+                  <h2 className="text-3xl font-black text-indigo-600 uppercase mb-2">Hebat!</h2>
+                  <p className="text-stone-500 font-bold uppercase text-xs tracking-widest">+ {showClaimReward.amount} Permata Berhasil Diklaim</p>
+               </div>
+               
+               {/* Confetti-like bits with Framer Motion */}
+               {[...Array(6)].map((_, i) => (
+                 <motion.div
+                   key={i}
+                   initial={{ y: 0, x: 0, opacity: 1 }}
+                   animate={{ 
+                     y: [0, -100, -200], 
+                     x: [0, (i % 2 === 0 ? 50 : -50), (i % 2 === 0 ? 100 : -100)],
+                     opacity: 0 
+                   }}
+                   transition={{ duration: 2, repeat: Infinity }}
+                   className="absolute top-1/2 left-1/2 text-xl"
+                 >
+                   ✨
+                 </motion.div>
+               ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

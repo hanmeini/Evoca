@@ -17,6 +17,7 @@ export default function AiReaderLayout({
   const [docTitle, setDocTitle] = useState("Loading...");
   const [headerColor, setHeaderColor] = useState("");
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [materiIndex, setMateriIndex] = useState(1);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -25,6 +26,8 @@ export default function AiReaderLayout({
       const themeData = THEMES[t];
       setHeaderColor((prev) => prev !== themeData.header ? themeData.header : prev);
     }
+    const m = searchParams.get("materi");
+    if (m) setMateriIndex(Number(m));
   }, []);
 
   useEffect(() => {
@@ -72,7 +75,7 @@ export default function AiReaderLayout({
 
             <div>
               <p className="text-[10px] md:text-xs font-black uppercase tracking-widest opacity-80 decoration-white/50 underline-offset-4 mb-1">
-                BAGIAN 1, UNIT 1
+                {materiIndex % 5 === 0 ? `UJIAN UNIT ${materiIndex / 5}` : `MATERI ${materiIndex}`}
               </p>
               <h1 className="font-black text-lg md:text-2xl leading-tight line-clamp-1">
                 {docTitle}

@@ -1,4 +1,4 @@
-import { FileText, Cpu, Clock, ChevronLeft } from "lucide-react";
+import { FileText, Cpu, Clock, ChevronLeft, Sparkles } from "lucide-react";
 import { adminDb } from "@/src/lib/firebase-admin";
 import Link from "next/link";
 import { SummaryFinishButton } from "@/src/components/reader/SummaryFinishButton";
@@ -36,15 +36,15 @@ export default async function AiReaderSummaryPage({
           {/* Header Area */}
           <div className="p-6 md:p-12 border-b border-stone-100 bg-white">
             <div className="space-y-4 max-w-3xl">
-              <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                <Cpu className="w-3 h-3" />
-                AI Summary
+              <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-purple-100 mb-2">
+                <Sparkles className="w-3 h-3" />
+                Ringkasan Materi
               </div>
-              <h1 className="text-2xl md:text-4xl font-black text-stone-900 leading-tight">
-                {metadata.title || "Ringkasan Materi"}
+              <h1 className="text-2xl md:text-4xl font-black text-stone-900 leading-tight font-poppins">
+                Jalur Penalaran: <span className="text-purple-600">{metadata.title || "Menguasai Materi"}</span>
               </h1>
               <p className="text-stone-500 font-medium text-base md:text-lg leading-relaxed">
-                Poin-poin kunci yang diekstrak untuk penguasaan materi yang lebih cepat.
+                Eksplorasi poin-poin strategis untuk akselerasi pemahaman anda.
               </p>
             </div>
           </div>
@@ -154,37 +154,39 @@ export default async function AiReaderSummaryPage({
             )}
 
             {/* Key Pillars - Minimal List */}
-            <div className="space-y-8">
-              <div className="space-y-2">
-                <h3 className="text-xs font-black text-stone-400 uppercase tracking-[0.3em]">Pilar-Pilar Utama</h3>
-                <p className="text-xl md:text-2xl font-black text-stone-900 tracking-tight">Apa yang harus Anda kuasai</p>
-              </div>
+            {concepts.length > 0 && (
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <h3 className="text-xs font-black text-stone-400 uppercase tracking-[0.3em]">Pilar-Pilar Utama</h3>
+                  <p className="text-xl md:text-2xl font-black text-stone-900 tracking-tight">Apa yang harus Anda kuasai</p>
+                </div>
 
-              <div className="grid gap-4">
-                {concepts.map((concept: string, idx: number) => {
-                  const parts = concept.includes(':') ? concept.split(':') : [concept, ""];
-                  return (
-                    <div key={idx} className="flex gap-4 md:gap-6 p-4 md:p-6 rounded-2xl border border-indigo-100/50 bg-indigo-50/20 md:border-stone-100 md:bg-transparent md:hover:border-indigo-100 md:hover:bg-indigo-50/20 transition-all group">
-                      <div className="shrink-0">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-indigo-600 text-white md:bg-stone-50 md:text-stone-400 flex items-center justify-center text-sm md:text-base font-black transition-colors md:group-hover:bg-indigo-600 md:group-hover:text-white">
-                          {idx + 1}
+                <div className="grid gap-4">
+                  {concepts.map((concept: string, idx: number) => {
+                    const parts = concept.includes(':') ? concept.split(':') : [concept, ""];
+                    return (
+                      <div key={idx} className="flex gap-4 md:gap-6 p-4 md:p-6 rounded-2xl border border-indigo-100/50 bg-indigo-50/20 md:border-stone-100 md:bg-transparent md:hover:border-indigo-100 md:hover:bg-indigo-50/20 transition-all group">
+                        <div className="shrink-0">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-indigo-600 text-white md:bg-stone-50 md:text-stone-400 flex items-center justify-center text-sm md:text-base font-black transition-colors md:group-hover:bg-indigo-600 md:group-hover:text-white">
+                            {idx + 1}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-indigo-600 md:text-stone-900 text-lg md:group-hover:text-indigo-600 transition-colors">
+                            {parts[0].replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()}
+                          </h4>
+                          {parts[1] && (
+                            <p className="text-stone-500 text-sm md:text-base leading-relaxed font-medium">
+                              {parts.slice(1).join(':').trim()}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <h4 className="font-black text-indigo-600 md:text-stone-900 text-lg md:group-hover:text-indigo-600 transition-colors">
-                          {parts[0].replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()}
-                        </h4>
-                        {parts[1] && (
-                          <p className="text-stone-500 text-sm md:text-base leading-relaxed font-medium">
-                            {parts.slice(1).join(':').trim()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Action Footer */}
