@@ -56,13 +56,7 @@ export const MascotSelectionStep = ({
                 className={`aspect-square ${m.bg} rounded-3xl mb-6 flex items-center justify-center relative shadow-inner overflow-hidden`}
               >
                 <Image
-                  src={
-                    m.id === "tiger"
-                      ? "/images/tiger-mascot.png"
-                      : m.id === "komodo"
-                        ? "/images/komodo-mascot-new.png"
-                        : "/images/badak-mascot.png"
-                  }
+                  src={m.image}
                   alt={m.name}
                   fill
                   className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
@@ -101,13 +95,7 @@ export const MascotSelectionStep = ({
                     className={`aspect-square ${m.bg} rounded-2xl mb-6 flex items-center justify-center relative shadow-inner overflow-hidden w-full`}
                   >
                     <Image
-                      src={
-                        m.id === "tiger"
-                          ? "/images/tiger-mascot.png"
-                          : m.id === "komodo"
-                            ? "/images/komodo-mascot-new.png"
-                            : "/images/badak-mascot.png"
-                      }
+                      src={m.image}
                       alt={m.name}
                       fill
                       className="object-contain p-4"

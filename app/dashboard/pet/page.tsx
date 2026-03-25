@@ -4,101 +4,146 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Flame, 
   Sparkles, 
-  ChevronRight, 
   Heart,
   Zap,
-  Info,
-  Egg,
-  Bird,
-  Dog,
-  Cat,
-  Target,
   ArrowLeft,
+  Activity,
   Trophy,
-  Ghost,
-  History,
-  TrendingUp,
-  Activity
+  Utensils,
+  Gamepad2,
+  Moon,
+  Sun,
+  Stars,
+  Coffee
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
-import { useMemo } from "react";
+import { MASCOTS } from "@/src/components/home/onboarding/constants";
+import { UNITS } from "@/src/constants/units";
+
+// Particle component for interactions
+const Particle = ({ x, y, icon: Icon, color }: { x: number, y: number, icon: any, color: string }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0, x, y }}
+    animate={{ 
+      opacity: [0, 1, 0], 
+      scale: [0, 1.5, 0.5],
+      y: y - 100,
+      x: x + (Math.random() - 0.5) * 50
+    }}
+    transition={{ duration: 1, ease: "easeOut" }}
+    className={cn("absolute pointer-events-none z-50", color)}
+  >
+    <Icon className="w-6 h-6 fill-current" />
+  </motion.div>
+);
 
 export default function PetPage() {
-  const { userStats } = useAuth();
+  const { userStats, user } = useAuth();
   const streak = userStats?.streak || 1;
   const gems = userStats?.gems || 0;
   const [xp, setXp] = useState(userStats?.totalXP || 0);
+  const [userMascot, setUserMascot] = useState<string>("tiger");
+  const [particles, setParticles] = useState<{ id: number, x: number, y: number, icon: any, color: string }[]>([]);
+
+  // Load selected mascot
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("selectedMascot");
+      if (saved) setUserMascot(saved);
+    }
+  }, []);
+
+  const mascotData = useMemo(() => {
+    const found = MASCOTS.find(m => m.id === userMascot);
+    if (found) return found;
+    
+    // Fallback/Special case for Yeti
+    if (userMascot === "yeti") {
+      return {
+        id: "yeti",
+        name: "Yeti",
+        image: UNITS[0].monsters[2].image, // Adult Yeti
+        color: "text-indigo-600",
+        bg: "bg-indigo-50"
+      };
+    }
+    
+    return MASCOTS[0]; // Default to Tiger
+  }, [userMascot]);
 
   const [isInteracting, setIsInteracting] = useState(false);
-  
-  type InteractionType = "pet" | "feed" | "play";
-  const [interactionType, setInteractionType] = useState<InteractionType | null>(null);
-
-  // Constants
-  const maxXp = 1000;
-  const petName = "Aether";
-
-  const evolutions = [
-    { label: "Egg", streakCount: 0, icon: Egg, color: "text-stone-300", bg: "bg-stone-50", labelId: "Cosmic Egg" },
-    { label: "Baby", streakCount: 3, icon: Bird, color: "text-yellow-400", bg: "bg-yellow-50", labelId: "Stellar Hatchling" },
-    { label: "Junior", streakCount: 7, icon: Cat, color: "text-indigo-400", bg: "bg-indigo-50", labelId: "Astral Junior" },
-    { label: "Senior", streakCount: 14, icon: Dog, color: "text-purple-500", bg: "bg-purple-50", labelId: "Nova Senior" },
-    { label: "Mythic", streakCount: 30, icon: Sparkles, color: "text-rose-500", bg: "bg-rose-50", labelId: "Celestial Guardian" },
-  ];
+  const [interactionType, setInteractionType] = useState<string | null>(null);
 
   const todayStr = getTodayStr();
   const isQuestCompletedToday = useMemo(() => {
     const d = userStats?.dailyProgress?.[todayStr] || {};
-    
-    // Goals from missions: m1: 1, m2: 5, m4: 1, m3: 1
-    const m1Completed = (d.documentsUploaded || 0) >= 1;
-    const m2Completed = (d.messagesSent || 0) >= 5;
-    const m3Completed = (d.quizzesPerfect || 0) >= 1;
-    const m4Completed = (d.podcastsFinished || 0) >= 1;
-
-    return m1Completed || m2Completed || m3Completed || m4Completed;
+    return (d.documentsUploaded || 0) >= 1 || (d.messagesSent || 0) >= 5 || (d.quizzesPerfect || 0) >= 1 || (d.podcastsFinished || 0) >= 1;
   }, [userStats, todayStr]);
 
   const level = Math.floor(xp / 100) + 1;
-  const currentEvo = [...evolutions].reverse().find(e => streak >= e.streakCount) || evolutions[0];
+  const progressToNextLevel = (xp % 100);
 
-  const handleInteraction = (type: InteractionType) => {
+  const spawnParticles = (count: number, icon: any, color: string) => {
+    const newParticles = Array.from({ length: count }).map(() => ({
+      id: Math.random(),
+      x: (Math.random() - 0.5) * 100,
+      y: 0,
+      icon,
+      color
+    }));
+    setParticles(prev => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1000);
+  };
+
+  const handleInteraction = (type: "pet" | "feed" | "play") => {
     if (isInteracting) return;
     setIsInteracting(true);
     setInteractionType(type);
-    
-    // Simulate growth/happiness
-    if (type === "feed") setXp((prev: number) => Math.min(prev + 20, maxXp));
-    if (type === "play") setXp((prev: number) => Math.min(prev + 10, maxXp));
+
+    if (type === "pet") {
+      spawnParticles(5, Heart, "text-rose-400");
+    } else if (type === "feed") {
+      spawnParticles(5, Coffee, "text-amber-600");
+      setXp(prev => prev + 10);
+    } else if (type === "play") {
+      spawnParticles(5, Sparkles, "text-indigo-400");
+      setXp(prev => prev + 5);
+    }
 
     setTimeout(() => {
       setIsInteracting(false);
       setInteractionType(null);
-    }, 2000);
+    }, 1000);
   };
 
   return (
-    <div className="bg-white min-h-screen relative overflow-x-hidden">
-      {/* Top Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 lg:left-72">
+    <div className="bg-[#fffdfa] min-h-screen relative overflow-x-hidden font-sans">
+      {/* Background Decor */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0" 
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} 
+      />
+      
+      {/* Top Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#fffdfa]/80 backdrop-blur-xl border-b border-orange-100 lg:left-72">
         <div className="max-w-[1240px] mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-stone-400 hover:text-stone-900 transition-colors font-black uppercase text-[10px] tracking-widest">
-            <ArrowLeft className="w-4 h-4" />
+          <Link href="/dashboard" className="flex items-center gap-2 text-amber-900/40 hover:text-amber-900 transition-all font-black uppercase text-[10px] tracking-widest group">
+            <div className="p-2 rounded-xl bg-orange-50 group-hover:bg-orange-100 transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
             <span>Beranda</span>
           </Link>
           
           <div className="flex items-center gap-6">
-             <div className={cn(
-               "flex items-center gap-2 transition-all duration-500",
-               !isQuestCompletedToday && "grayscale opacity-50"
-             )}>
-                <Flame className={cn("w-4 h-4 transition-colors", isQuestCompletedToday ? "text-orange-500 fill-orange-500" : "text-stone-400")} />
-                <span className={cn("font-black text-xs transition-colors", isQuestCompletedToday ? "text-orange-500" : "text-stone-400")}>{streak} Hari</span>
+             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-orange-100 shadow-sm">
+                <Flame className={cn("w-4 h-4", isQuestCompletedToday ? "text-orange-500 fill-orange-500 animate-pulse" : "text-stone-300")} />
+                <span className="font-black text-xs text-stone-700">{streak} Hari</span>
              </div>
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-indigo-100 shadow-sm">
                 <span className="text-sm">💎</span>
                 <span className="font-black text-xs text-indigo-500">{gems}</span>
              </div>
@@ -106,206 +151,199 @@ export default function PetPage() {
         </div>
       </header>
 
-      <div className="max-w-[1240px] mx-auto px-4 pt-24 pb-32 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12">
-        {/* Main Content Area */}
+      <div className="max-w-[1240px] mx-auto px-4 pt-28 pb-32 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 relative z-10">
         <div className="flex flex-col items-center">
-          {/* Mascot Section */}
-          <div className="relative w-full aspect-square max-w-[420px] flex items-center justify-center bg-stone-50/50 rounded-[4rem] border border-stone-100">
-              <motion.div 
-                 animate={isInteracting ? { scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] } : { y: [0, -10, 0] }}
-                 whileTap={{ scale: 0.95 }}
-                 transition={{ duration: isInteracting ? 0.3 : 3, repeat: Infinity, ease: "easeInOut" }}
-                 onClick={() => handleInteraction("pet")}
-                 className="relative w-full h-full cursor-pointer"
+          {/* Main Pet Stage */}
+          <div className="relative w-full aspect-square max-w-[480px] flex items-center justify-center">
+            {/* Stage Decor */}
+            <div className="absolute inset-0 bg-linear-to-b from-orange-100/30 to-rose-100/20 rounded-[4rem] border-2 border-orange-50/50 shadow-inner" />
+            
+            {/* Mascot Container */}
+            <motion.div 
+               animate={isInteracting ? { 
+                 scale: [1, 1.1, 0.95, 1],
+                 y: interactionType === "play" ? [0, -40, 0] : 0 
+               } : { 
+                 y: [0, -10, 0] 
+               }}
+               transition={{ 
+                 duration: isInteracting ? 0.4 : 4, 
+                 repeat: isInteracting ? 0 : Infinity,
+                 ease: "easeInOut" 
+               }}
+               className="relative w-[70%] h-[70%] z-20"
+            >
+              <img
+                src={mascotData.image}
+                alt={mascotData.name}
+                className={cn(
+                  "w-full h-full object-contain drop-shadow-2xl transition-all duration-700",
+                  !isQuestCompletedToday && "grayscale opacity-60 scale-95"
+                )}
+              />
+
+              {/* Interaction Particles */}
+              {particles.map(p => (
+                <Particle key={p.id} x={p.x} y={p.y} icon={p.icon} color={p.color} />
+              ))}
+
+              {/* Floating Bubble */}
+              <AnimatePresence>
+                {isInteracting && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                    animate={{ opacity: 1, scale: 1, y: -40 }}
+                    exit={{ opacity: 0, scale: 0.5, y: -60 }}
+                    className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-6 py-3 rounded-2xl shadow-xl font-black text-xs uppercase text-amber-600 border-2 border-amber-50"
+                  >
+                    {interactionType === "pet" ? "❤ Sayang!" : interactionType === "feed" ? "🍴 Nyam!" : "✨ Seru!"}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Platform Shadow */}
+            <div className="absolute bottom-16 w-32 h-6 bg-stone-900/5 blur-xl rounded-full scale-125" />
+          </div>
+
+          {/* Info Section */}
+          <div className="text-center mt-12 mb-12">
+            <h1 className="text-5xl font-black text-amber-950 tracking-tighter uppercase mb-4 drop-shadow-sm">
+              {mascotData.name}
+            </h1>
+            <div className="flex items-center justify-center gap-3">
+              <div className="px-5 py-2 rounded-xl bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-[0_4px_0_0_#c2410c] border-b border-white/20">
+                Peliharaan Utama
+              </div>
+              <div className="px-5 py-2 rounded-xl bg-amber-100 text-amber-700 font-black text-[10px] uppercase tracking-widest border border-amber-200 shadow-sm">
+                Level {level}
+              </div>
+            </div>
+          </div>
+
+          {/* Interaction Grid */}
+          <div className="grid grid-cols-3 gap-6 w-full max-w-lg mb-16">
+            {[
+              { id: "pet", icon: Heart, label: "Sayang", sub: "Kasih Sayang", color: "bg-rose-500", shadow: "shadow-rose-200", hover: "hover:bg-rose-600" },
+              { id: "feed", icon: Utensils, label: "Makan", sub: "+10 XP", color: "bg-amber-500", shadow: "shadow-amber-200", hover: "hover:bg-amber-600" },
+              { id: "play", icon: Gamepad2, label: "Main", sub: "+5 XP", color: "bg-indigo-500", shadow: "shadow-indigo-200", hover: "hover:bg-indigo-600" },
+            ].map((action) => (
+              <motion.button
+                key={action.id}
+                whileHover={{ y: -5 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleInteraction(action.id as any)}
+                className={cn(
+                  "flex flex-col items-center gap-3 p-6 rounded-[2.5rem] bg-white border-2 border-stone-100 shadow-xl transition-all group",
+                  action.id === "pet" ? "hover:border-rose-100" : action.id === "feed" ? "hover:border-amber-100" : "hover:border-indigo-100"
+                )}
               >
-                <video
-                  src="/animations/mascot-yeti.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className={cn(
-                    "w-full h-full object-contain transition-all duration-700",
-                    !isQuestCompletedToday && "grayscale opacity-40 scale-90"
-                  )}
-                />
-                
-                {/* Interaction feedback */}
-                <AnimatePresence>
-                  {isInteracting && (
-                     <motion.div 
-                       initial={{ opacity: 0, y: 20, scale: 0.5 }}
-                       animate={{ opacity: 1, y: -40, scale: 1 }}
-                       exit={{ opacity: 0, y: -80, scale: 0.5 }}
-                       className="absolute top-0 right-1/4 bg-white px-4 py-2 rounded-2xl shadow-xl font-black text-xs uppercase text-rose-500 border-2 border-rose-50"
-                     >
-                       {interactionType === "pet" ? "❤ Sayang!" : interactionType === "feed" ? "🍴 Nyam!" : "✨ Seru!"}
-                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                <div className={cn(
+                  "w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-2 transition-transform group-hover:rotate-6",
+                  action.color
+                )}>
+                  <action.icon className="w-7 h-7" />
+                </div>
+                <div className="text-center">
+                  <p className="text-[11px] font-black text-stone-800 uppercase tracking-widest">{action.label}</p>
+                  <p className="text-[8px] font-bold text-stone-400 uppercase tracking-tighter mt-1">{action.sub}</p>
+                </div>
+              </motion.button>
+            ))}
           </div>
 
-          {/* Pet Title & Info */}
-          <div className="text-center mt-8">
-             <h1 className="text-5xl font-black text-stone-900 tracking-tighter uppercase">{petName}</h1>
-             <div className="flex items-center justify-center gap-3 mt-4">
-                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${currentEvo.bg} ${currentEvo.color} border border-current/10 border-b-4`}>
-                  {currentEvo.labelId}
-                </span>
-                <span className="px-4 py-1.5 rounded-full bg-stone-100 text-stone-400 text-[10px] font-black uppercase tracking-[0.2em] border border-stone-200 border-b-4">
-                  Level {level}
-                </span>
-             </div>
-          </div>
+          {/* Growth Card */}
+          <div className="w-full max-w-sm bg-white border-2 border-orange-50 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
+            <div className="absolute -right-12 -top-12 w-32 h-32 bg-orange-100/30 rounded-full blur-3xl" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8 text-amber-900/60 font-black text-[9px] uppercase tracking-[0.2em]">
+                <div className="flex items-center gap-2">
+                   <Activity className="w-3.5 h-3.5" />
+                   Progress Pertumbuhan
+                </div>
+                <span>{xp} / {level * 100} XP</span>
+              </div>
+              
+              <div className="h-6 bg-orange-50 rounded-full overflow-hidden p-1 shadow-inner border border-orange-100">
+                <motion.div 
+                  animate={{ width: `${progressToNextLevel}%` }}
+                  className="h-full bg-linear-to-r from-orange-400 to-amber-500 rounded-full relative"
+                >
+                   <div className="absolute inset-0 bg-white/20 animate-pulse pointer-events-none" />
+                </motion.div>
+              </div>
 
-          {/* Dotted Streak Progress Bar */}
-          <div className="w-full max-w-sm mt-12 bg-stone-50 border-2 border-stone-100 rounded-[3rem] p-10 shadow-sm relative">
-             <div className="flex items-center justify-between mb-8">
-                <h3 className="font-black text-[10px] uppercase tracking-[0.25em] text-stone-400 font-sans">Streak Milestone</h3>
-                 <div className={cn(
-                   "flex items-center gap-2 bg-white px-3 py-1 rounded-xl border transition-all duration-500",
-                   isQuestCompletedToday ? "border-orange-100" : "border-stone-100 grayscale opacity-50"
-                 )}>
-                    <Flame className={cn("w-3.5 h-3.5 transition-colors", isQuestCompletedToday ? "text-orange-500 fill-orange-500" : "text-stone-400")} />
-                    <span className={cn("font-black text-xs transition-colors", isQuestCompletedToday ? "text-stone-900" : "text-stone-400")}>{streak} Aktif</span>
-                 </div>
-             </div>
-             
-             <div className="flex justify-between items-center px-2">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center gap-3">
-                     <motion.div 
-                       initial={false}
-                       animate={{ 
-                          scale: streak > i ? 1.1 : 0.9,
-                          backgroundColor: streak > i ? "#ff9600" : "#ffffff" 
-                       }}
-                       className={cn(
-                          "w-5 h-5 rounded-full border-2 transition-all duration-500",
-                          (i < streak && (i !== (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) || isQuestCompletedToday))
-                            ? "bg-orange-500 border-orange-400 shadow-[0_0_15px_rgba(255,150,0,0.4)]" 
-                            : "bg-white border-stone-200"
-                       )}
-                     />
-                     <span className="text-[9px] font-black text-stone-300 uppercase tracking-tighter">{["S", "S", "R", "K", "J", "S", "M"][i]}</span>
+              <div className="mt-8 flex items-center justify-around">
+                {[
+                  { icon: Sun, label: "Energi", val: streak > 0 ? "100%" : "40%", color: "text-amber-500" },
+                  { icon: Moon, label: "Tidur", val: "8/8h", color: "text-indigo-500" },
+                  { icon: Heart, label: "Cinta", val: "Maks", color: "text-rose-500" },
+                ].map((s, i) => (
+                  <div key={i} className="flex flex-col items-center gap-2">
+                    <s.icon className={cn("w-4 h-4", s.color)} />
+                    <p className="text-[9px] font-black text-amber-950/40 uppercase tracking-widest">{s.label}</p>
+                    <p className="text-xs font-black text-amber-950">{s.val}</p>
                   </div>
                 ))}
-             </div>
-             
-             <div className="mt-10 pt-10 border-t border-stone-200/50">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Growth Progress</span>
-                  <span className="text-[10px] font-black text-indigo-500 uppercase">{xp} / {maxXp} XP</span>
-                </div>
-                <div className="h-5 bg-white rounded-full overflow-hidden p-1 shadow-inner border border-stone-100">
-                   <motion.div 
-                     initial={{ width: 0 }}
-                     animate={{ width: `${(xp/maxXp)*100}%` }}
-                     className="h-full bg-linear-to-r from-indigo-500 to-indigo-400 rounded-full relative"
-                   >
-                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                   </motion.div>
-                </div>
-             </div>
-          </div>
-
-          {/* Interaction Actions */}
-          <div className="flex items-center gap-6 mt-12 mb-20">
-             {( [
-               { id: "pet", icon: Heart, label: "Sayang", color: "hover:bg-rose-50 hover:text-rose-500 border-stone-100 hover:border-rose-100 shadow-sm" },
-               { id: "feed", icon: Zap, label: "Makan", color: "hover:bg-amber-50 hover:text-amber-500 border-stone-100 hover:border-amber-100 shadow-sm" },
-               { id: "play", icon: Ghost, label: "Main", color: "hover:bg-indigo-50 hover:text-indigo-500 border-stone-100 hover:border-indigo-100 shadow-sm" },
-             ] as const).map((action) => (
-               <motion.button
-                 key={action.id}
-                 whileHover={{ y: -6, scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() => handleInteraction(action.id)}
-                 className={cn(
-                    "flex flex-col items-center gap-3 p-6 bg-white border-2 rounded-[2.5rem] transition-all duration-300 w-32",
-                    action.color
-                 )}
-               >
-                 <action.icon className="w-6 h-6" />
-                 <span className="text-[11px] font-black uppercase tracking-[0.2em] leading-none">{action.label}</span>
-               </motion.button>
-             ))}
-          </div>
-
-          {/* Evolution Preview Section */}
-          <div className="w-full mt-10">
-              <h2 className="text-center font-black text-[11px] uppercase tracking-[0.4em] text-stone-400 mb-12 flex items-center justify-center gap-6">
-                <span className="h-[1px] w-12 bg-stone-100" />
-                Preview Evolusi
-                <span className="h-[1px] w-12 bg-stone-100" />
-              </h2>
-              
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-                 {evolutions.map((evo, i) => {
-                   const isReached = streak >= evo.streakCount;
-                   const EvoIcon = evo.icon;
-                   
-                   return (
-                     <div key={i} className={cn(
-                        "flex flex-col items-center gap-5 p-7 rounded-[3rem] border-2 transition-all relative group",
-                        isReached ? "bg-white border-indigo-500 shadow-xl scale-105" : "bg-stone-50 border-stone-100 opacity-40"
-                     )}>
-                        {isReached && (
-                           <div className="absolute -top-3 -right-3 w-9 h-9 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg border-4 border-white">
-                              <Sparkles className="w-4 h-4" />
-                           </div>
-                        )}
-                        
-                        <div className={cn(
-                           "w-20 h-20 rounded-[2rem] flex items-center justify-center border-2 transition-transform group-hover:rotate-6",
-                           isReached ? "bg-indigo-50 border-indigo-100 text-indigo-500" : "bg-stone-200 border-stone-300 text-stone-400"
-                        )}>
-                          <EvoIcon className="w-10 h-10" />
-                        </div>
-                        
-                        <div className="text-center">
-                           <p className={cn("font-black text-[11px] uppercase tracking-tighter mb-1", isReached ? "text-indigo-600" : "text-stone-400")}>
-                             {evo.label}
-                           </p>
-                           <p className="text-[9px] font-black text-stone-300 uppercase tracking-widest">{evo.streakCount} Hari</p>
-                        </div>
-                        
-                        {i < evolutions.length - 1 && (
-                           <div className="hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-stone-100" />
-                        )}
-                     </div>
-                   )
-                 })}
               </div>
+            </div>
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <aside className="space-y-8 lg:sticky lg:top-24 h-fit">
-           {/* Pet Vitality Widget */}
-           <div className="bg-white border-2 border-stone-100 rounded-[3rem] p-8 shadow-sm">
-              <h3 className="font-black text-[11px] uppercase tracking-[0.2em] text-stone-900 mb-8 flex items-center gap-3">
-                 <Activity className="w-4 h-4 text-rose-500" />
-                 Vitalitas {petName}
-              </h3>
+        {/* Sidebar */}
+        <aside className="space-y-8 lg:sticky lg:top-28 h-fit">
+           {/* Achievement Widget */}
+           <div className="bg-linear-to-br from-indigo-600 to-purple-700 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[40px] group-hover:scale-150 transition-transform duration-1000" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                    <Trophy className="w-6 h-6 text-amber-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-xs uppercase tracking-widest">Master Pet</h3>
+                    <p className="text-[9px] font-bold opacity-60 uppercase">Unit 1: Selesai</p>
+                  </div>
+                </div>
+                
+                <p className="text-xs font-medium leading-relaxed opacity-90 mb-6 italic">
+                  &quot;Peliharaanmu sangat bangga padamu! Terus belajar untuk membuka evolusi baru.&quot;
+                </p>
+
+                <div className="flex gap-2">
+                   {[1, 2, 3].map(i => (
+                     <div key={i} className={cn(
+                       "w-8 h-8 rounded-lg flex items-center justify-center text-xs",
+                       i === 1 ? "bg-amber-400" : "bg-white/10 opacity-30"
+                     )}>
+                        {i === 1 ? "🥇" : "🔒"}
+                     </div>
+                   ))}
+                </div>
+              </div>
+           </div>
+
+           {/* Vitality Bars */}
+           <div className="bg-white border-2 border-orange-50 rounded-[3rem] p-8 shadow-xl">
+              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-900/40 mb-8">Statistik Vitalitas</h3>
               
               <div className="space-y-6">
                  {[
-                   { label: "Kelaparan", val: 85, color: "bg-amber-400" },
-                   { label: "Kebahagiaan", val: 92, color: "bg-rose-400" },
-                   { label: "Energi", val: 64, color: "bg-indigo-400" },
+                   { label: "Kelaparan", val: 82, color: "bg-amber-400" },
+                   { label: "Kebahagiaan", val: 95, color: "bg-rose-400" },
+                   { label: "Kesehatan", val: 100, color: "bg-emerald-400" },
                  ].map((stat, i) => (
                    <div key={i} className="space-y-2">
-                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-stone-400">
+                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-stone-600 px-1">
                         <span>{stat.label}</span>
-                        <span className="text-stone-900">{stat.val}%</span>
+                        <span className="text-amber-600">{stat.val}%</span>
                      </div>
-                     <div className="h-2.5 bg-stone-50 rounded-full border border-stone-100 p-[2px]">
+                     <div className="h-3 bg-orange-50 rounded-full border border-orange-100 p-0.5 shadow-inner">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${stat.val}%` }}
-                          className={cn("h-full rounded-full", stat.color)}
+                          className={cn("h-full rounded-full transition-all duration-1000", stat.color)}
                         />
                      </div>
                    </div>
@@ -313,62 +351,40 @@ export default function PetPage() {
               </div>
            </div>
 
-           {/* Evolution Log Widget */}
-           <div className="bg-stone-900 rounded-[3rem] p-8 text-white shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-[60px] group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative z-10">
-                <h3 className="font-black text-[11px] uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-                   <History className="w-4 h-4 text-indigo-400" />
-                   Catatan Evolusi
-                </h3>
-                
-                <div className="space-y-6">
-                   {[
-                     { date: "11 Maret", event: "Telur Kosmik Mendekat", active: true },
-                     { date: "Akan Datang", event: "Evolusi Stellar Hatchling", active: false },
-                   ].map((log, i) => (
-                     <div key={i} className="flex gap-4">
-                        <div className={cn("w-2 h-2 rounded-full mt-1 shrink-0", log.active ? "bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" : "bg-stone-700")} />
-                        <div>
-                           <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-0.5">{log.date}</p>
-                           <p className={cn("text-xs font-bold", log.active ? "text-white" : "text-stone-500")}>{log.event}</p>
-                        </div>
-                     </div>
-                   ))}
-                </div>
+           {/* Tip Widget */}
+           <div className="bg-amber-50 border-2 border-amber-100 rounded-[2.5rem] p-8 text-amber-900/60">
+              <div className="flex items-center gap-3 mb-4">
+                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                   <Stars className="w-4 h-4 text-amber-500" />
+                 </div>
+                 <p className="font-black text-[10px] uppercase tracking-widest">Tips Penjaga Pet</p>
               </div>
-           </div>
-
-           {/* Power Rank Widget */}
-           <div className="bg-indigo-50 border-2 border-indigo-100 rounded-[3rem] p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="font-black text-[11px] uppercase tracking-[0.2em] text-indigo-900">Power Rank</h3>
-                <TrendingUp className="w-4 h-4 text-indigo-500" />
-              </div>
-              
-              <div className="flex items-end gap-3 mb-6">
-                 <span className="text-4xl font-black text-indigo-600 tracking-tighter">#42</span>
-                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest pb-1.5">Global</span>
-              </div>
-              
-              <p className="text-[10px] font-black text-indigo-900/40 uppercase tracking-tight leading-relaxed italic">
-                &quot;Dibutuhkan 50 XP lagi untuk naik ke peringkat #40&quot;
+              <p className="text-xs font-bold leading-relaxed mb-6">
+                Kasih makan dan main setiap hari supaya status vitalitas tetap 100% dan bonus XP berlipat ganda!
               </p>
-
-              <button className="w-full mt-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-indigo-200 shadow-sm border-b-4 hover:translate-y-0.5 transition-transform active:border-b-0">
-                 LIHAT PAPAN SKOR
+              <button className="w-full py-4 bg-white text-amber-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-amber-100 shadow-sm border-b-4 hover:translate-y-0.5 transition-transform active:border-b-0">
+                PANDUAN PERAWATAN
               </button>
            </div>
         </aside>
       </div>
 
-      {/* Persistent Bottom CTA Overlay for Mobile */}
-      <div className="lg:hidden fixed bottom-6 left-6 right-6 z-40">
-         <Link href="/dashboard" className="flex items-center justify-center gap-3 w-full py-5 bg-[#1c1917] text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl">
-            <Target className="w-5 h-5" />
-            MULAI BELAJAR
-         </Link>
+      {/* Floating UI Elements */}
+      <div className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#1c1917]/95 backdrop-blur-xl px-8 py-5 rounded-[2.5rem] shadow-2xl border border-white/10 z-50">
+        <div className="flex items-center gap-6 pr-6 border-r border-white/10">
+           <div className="flex flex-col">
+              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Daily Goal</span>
+              <span className="text-xs font-black text-white">4/5 Misi</span>
+           </div>
+           <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg">
+              <Zap className="w-5 h-5 fill-current" />
+           </div>
+        </div>
+        <Link href="/dashboard" className="text-xs font-black text-white uppercase tracking-[0.2em] hover:text-orange-400 transition-colors">
+          Buka Peta Jalan
+        </Link>
       </div>
     </div>
   );
 }
+

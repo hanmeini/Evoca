@@ -140,10 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fetch("/api/streak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.uid }),
+        body: JSON.stringify({ 
+          userId: user.uid,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        }),
       }).catch((err) => console.warn("Streak check failed:", err));
     }
-  }, [user]);
+  }, [user?.uid, user?.displayName, user?.photoURL]);
 
   const signInWithGoogle = async () => {
     try {

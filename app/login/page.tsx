@@ -2,16 +2,36 @@
 
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/src/context/AuthContext";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { BackgroundMesh, FloatingOrnaments } from "@/src/components/ui/GameVisuals";
+import { MASCOTS } from "@/src/components/home/onboarding/constants";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [selectedMascotId, setSelectedMascotId] = useState("tiger");
   const { signInWithGoogle } = useAuth();
+
+  useEffect(() => {
+    const savedMascot = localStorage.getItem("selectedMascot");
+    if (savedMascot) {
+      setSelectedMascotId(savedMascot);
+    }
+  }, []);
+
+  const currentMascot = MASCOTS.find((m) => m.id === selectedMascotId) || MASCOTS[0];
+
+  const getMascotGreeting = (id: string) => {
+    switch (id) {
+      case "tiger": return "Rrawr! Ayo lanjut questmu!";
+      case "komodo": return "Halo! Mari kita atur strategi!";
+      case "rhino": return "Tetap kuat! Lanjutkan belajarmu!";
+      default: return "Ayo mulai petualanganmu!";
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setError("");
@@ -50,15 +70,15 @@ export default function LoginPage() {
           >
             <div className="relative w-64 h-64 md:w-80 md:h-80">
               <Image 
-                src="/images/tiger-mascot.png" 
-                alt="Tiger Mascot" 
+                src={currentMascot.image} 
+                alt={currentMascot.name} 
                 fill 
                 className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-float"
                 priority
                 draggable={false}
               />
               {/* Pulsing glow background */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/20 rounded-full blur-[60px] -z-10 animate-pulse" />
+              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 ${currentMascot.bg.replace('bg-', 'bg-').replace('50', '200')} rounded-full blur-[60px] -z-10 opacity-50 animate-pulse`} />
             </div>
 
             {/* Speech Bubble */}
@@ -69,8 +89,8 @@ export default function LoginPage() {
               className="absolute -top-12 -right-12 z-20"
             >
               <div className="bg-white px-6 py-4 rounded-3xl rounded-bl-none shadow-2xl border-2 border-indigo-100 whitespace-nowrap">
-                <p className="font-black text-indigo-600 italic text-sm md:text-base">
-                  &quot;Rrawr! Ayo lanjut questmu!&quot;
+                <p className={`font-black ${currentMascot.color} italic text-sm md:text-base`}>
+                  &quot;{getMascotGreeting(currentMascot.id)}&quot;
                 </p>
                 <svg className="absolute -bottom-[14px] left-0 w-6 h-4 text-white" viewBox="0 0 24 16" fill="currentColor">
                   <path d="M0 0 L24 0 L0 16 Z" />

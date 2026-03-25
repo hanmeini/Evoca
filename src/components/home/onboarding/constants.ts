@@ -7,7 +7,7 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Pemberani yang fokus dan tajam.",
     color: "text-orange-600",
     bg: "bg-orange-50",
-    image: "/images/tiger-mascot.png"
+    image: "/pet/tiger/image.png"
   },
   {
     id: "komodo",
@@ -15,7 +15,7 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Pintar yang strategis dan tenang.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
-    image: "/images/komodo-mascot-new.png"
+    image: "/pet/komodo/image.png"
   },
   {
     id: "rhino",
@@ -23,7 +23,7 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Tangguh yang konsisten dan kuat.",
     color: "text-blue-600",
     bg: "bg-blue-50",
-    image: "/images/badak-mascot.png"
+    image: "/pet/rhino/image.png"
   },
 ];
 

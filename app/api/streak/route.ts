@@ -5,7 +5,7 @@ import { getTodayStr, getYesterdayStr } from "@/src/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await req.json();
+    const { userId, displayName, photoURL } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
     if (!userDoc.exists) {
       // First time user initialization
       await userRef.set({
+        displayName: displayName || null,
+        photoURL: photoURL || null,
         streak: 1,
         lastStreakUpdate: todayStr,
         gems: 500,
@@ -31,6 +33,12 @@ export async function POST(req: NextRequest) {
     }
 
     const userData = userDoc.data();
+    
+    // Always sync profile info if provided
+    const profileUpdates: Record<string, any> = {};
+    if (displayName && userData?.displayName !== displayName) profileUpdates.displayName = displayName;
+    if (photoURL && userData?.photoURL !== photoURL) profileUpdates.photoURL = photoURL;
+
     const lastUpdateStr = userData?.lastStreakUpdate || "";
     const currentStreak = userData?.streak || 0;
     const dailyProgress = userData?.dailyProgress || {};
@@ -71,6 +79,7 @@ export async function POST(req: NextRequest) {
 
     // Update the streak and timestamp
     await userRef.update({
+      ...profileUpdates,
       streak: newStreak,
       lastStreakUpdate: todayStr,
       recentActivity: FieldValue.serverTimestamp()

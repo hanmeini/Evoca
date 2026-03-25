@@ -89,13 +89,7 @@ export const LoadingStep = ({
           >
             {currentMascot && (
               <Image
-                src={
-                  selectedMascot === "tiger"
-                    ? "/images/tiger-mascot.png"
-                    : selectedMascot === "komodo"
-                    ? "/images/komodo-mascot-new.png"
-                    : "/images/badak-mascot.png"
-                }
+                src={currentMascot?.image || ""}
                 alt="Loading Mascot"
                 fill
                 className="object-contain"

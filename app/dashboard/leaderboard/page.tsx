@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
 
 interface UserData {
+  uid: string;
   name: string;
   score: number;
   avatar: string;
@@ -19,99 +20,86 @@ interface UserData {
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ totalXP: 0, rank: "-" });
+  const [leaderboard, setLeaderboard] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Comprehensive Dummy Data for a full-looking leaderboard
-  // 1. Comprehensive Dummy Data with status
-  const dummyUsers: UserData[] = [
-    { name: "Andi Saputra", score: 1870, avatar: "A", prevRank: 2 },
-    { name: "Budi Santoso", score: 115, avatar: "B", prevRank: 1 },
-    { name: "Citra Lestari", score: 1315, avatar: "C", prevRank: 4 },
-    { name: "Dimas Anggara", score: 1200, avatar: "D", prevRank: 6 },
-    { name: "Eka Putri", score: 1020, avatar: "E", prevRank: 5 },
-    { name: "Fajar Pratama", score: 3150, avatar: "F", prevRank: 3 },
-    { name: "Gita Amalia", score: 920, avatar: "G", prevRank: 9 },
-    { name: "Hendra Wijaya", score: 900, avatar: "H", prevRank: 7 },
-    { name: "Indah Permata", score: 850, avatar: "I", prevRank: 10 },
-    { name: "Joko Susilo", score: 175, avatar: "J", prevRank: 12 },
-    { name: "Kristina", score: 655, avatar: "K", prevRank: 8 },
-    { name: "Luthfi", score: 260, avatar: "L", prevRank: 11 },
-    { name: "Maya", score: 110, avatar: "M", prevRank: 15 },
-    { name: "Rizky", score: 450, avatar: "R", prevRank: 13 },
-    { name: "Siti", score: 120, avatar: "S", prevRank: 14 },
-  ];
-
   useEffect(() => {
-    async function fetchData() {
-      if (!user?.uid) return;
+    async function fetchLeaderboard() {
       try {
-        const statsRes = await fetch(`/api/user-stats?userId=${user.uid}`);
-        const statsData = await statsRes.json();
-        if (statsData.success) {
-          setStats(statsData.stats);
+        const res = await fetch("/api/leaderboard?t=" + Date.now());
+        const data = await res.json();
+        if (data.success) {
+          // Map API data to UserData interface
+          const mapped = data.leaderboard.map((u: any) => {
+            const isMe = u.uid === user?.uid;
+            return {
+              uid: u.uid,
+              name: isMe && user?.displayName ? user.displayName : (u.name || "Sobat Evoca"),
+              score: u.score,
+              avatar: isMe && user?.displayName ? user.displayName.charAt(0).toUpperCase() : (u.avatar || "U"),
+              photoURL: isMe && user?.photoURL ? user.photoURL : u.photoURL,
+              isMe,
+              prevRank: undefined
+            };
+          });
+          setLeaderboard(mapped);
         }
       } catch (error) {
-        console.error("Error fetching leaderboard stats:", error);
+        console.error("Error fetching leaderboard:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchData();
-  }, [user]);
-
-  const myUser: UserData = {
-    name: user?.displayName || "Sobat Evoca",
-    score: stats.totalXP,
-    avatar: user?.displayName?.charAt(0).toUpperCase() || "U",
-    photoURL: user?.photoURL,
-    isMe: true,
-    // Simulate rank change for me (assume 1 rank higher than score-based calculation for animation)
-    prevRank: 20
-  };
-
-  const allInList = [myUser, ...dummyUsers];
+    fetchLeaderboard();
+  }, [user?.uid]);
 
   const sortedUsers = useMemo(() => {
-    return allInList
+    return [...leaderboard]
       .sort((a, b) => b.score - a.score)
       .map((u, index) => {
+        const isMe = u.uid === user?.uid;
         const currentRank = index + 1;
-        let status: 'up' | 'down' | 'stable' = 'stable';
-        
-        if (u.prevRank) {
-          if (u.prevRank > currentRank) status = 'up';
-          else if (u.prevRank < currentRank) status = 'down';
-        }
-
         return {
           ...u,
+          name: isMe && user?.displayName ? user.displayName : u.name,
+          photoURL: isMe && user?.photoURL ? user.photoURL : u.photoURL,
+          avatar: isMe && user?.displayName ? user.displayName.charAt(0).toUpperCase() : u.avatar,
           rank: currentRank,
-          status,
+          status: 'stable' as const,
           color: index === 0 ? "bg-amber-100 text-amber-600" :
             index === 1 ? "bg-stone-200 text-stone-600" :
               index === 2 ? "bg-orange-100 text-orange-600" :
                 "bg-transparent text-stone-400"
         };
       });
-  }, [allInList]);
+  }, [leaderboard, user?.uid, user?.displayName, user?.photoURL]);
 
-  const topThree = [
-    sortedUsers.find((u: any) => u.rank === 2),
-    sortedUsers.find((u: any) => u.rank === 1),
-    sortedUsers.find((u: any) => u.rank === 3),
-  ].filter(Boolean);
+  const topThree = useMemo(() => {
+    return [
+      sortedUsers.find((u) => u.rank === 2),
+      sortedUsers.find((u) => u.rank === 1),
+      sortedUsers.find((u) => u.rank === 3),
+    ].filter(Boolean) as UserData[];
+  }, [sortedUsers]);
 
-  const others = sortedUsers.filter((u: any) => u.rank > 3);
+  const others = useMemo(() => {
+    return sortedUsers.filter((u) => u.rank > 3);
+  }, [sortedUsers]);
 
-  const rankedMe = sortedUsers.find((u: any) => u.isMe);
-  const currentUser = {
-    ...rankedMe,
-    rank: rankedMe?.rank || "-",
-    score: rankedMe?.score || 0,
-    status: rankedMe?.status || "stable",
-    color: "bg-indigo-600 text-white",
-  };
+  const currentUser = useMemo(() => {
+    const me = sortedUsers.find((u) => u.isMe);
+    
+    return {
+      uid: user?.uid || "",
+      name: user?.displayName || me?.name || "Sobat Evoca",
+      score: me?.score || 0,
+      avatar: (user?.displayName || me?.name || "U").charAt(0).toUpperCase(),
+      photoURL: user?.photoURL || me?.photoURL,
+      rank: me?.rank || "-",
+      status: "stable" as const,
+      isMe: true
+    };
+  }, [sortedUsers, user]);
 
   return (
     <div className="min-h-screen bg-transparent font-sans text-stone-900 pb-0">
@@ -130,9 +118,13 @@ export default function LeaderboardPage() {
             <div className="flex flex-col items-center flex-1 relative">
               <div className="relative -mb-8 z-20">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-4 border-[#a78bfa] overflow-hidden relative shadow-lg shrink-0">
-                  <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-2xl">
-                    {topThree[0].avatar}
-                  </div>
+                  {topThree[0].photoURL ? (
+                    <img src={topThree[0].photoURL} alt={topThree[0].name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-2xl">
+                      {topThree[0].avatar}
+                    </div>
+                  )}
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-stone-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-[#8b5cf6]">
                   2
@@ -166,9 +158,13 @@ export default function LeaderboardPage() {
 
                 <Crown className="w-10 h-10 text-amber-400 fill-amber-400 absolute -top-8 left-1/2 -translate-x-1/2 drop-shadow-lg z-30" />
                 <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-2xl overflow-hidden relative z-20">
-                  <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-3xl">
-                    {topThree[1].avatar}
-                  </div>
+                  {topThree[1].photoURL ? (
+                    <img src={topThree[1].photoURL} alt={topThree[1].name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-3xl">
+                      {topThree[1].avatar}
+                    </div>
+                  )}
                 </div>
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-stone-800 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ring-4 ring-white/20 border-2 border-[#8b5cf6] z-30">
                   1
@@ -189,9 +185,13 @@ export default function LeaderboardPage() {
             <div className="flex flex-col items-center flex-1 relative">
               <div className="relative -mb-8 z-20">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-4 border-[#a78bfa] overflow-hidden relative shadow-lg shrink-0">
-                  <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-2xl">
-                    {topThree[2].avatar}
-                  </div>
+                  {topThree[2].photoURL ? (
+                    <img src={topThree[2].photoURL} alt={topThree[2].name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="bg-stone-100 flex items-center justify-center h-full w-full font-black text-purple-600 text-2xl">
+                      {topThree[2].avatar}
+                    </div>
+                  )}
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-stone-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-[#8b5cf6]">
                   3
@@ -216,7 +216,7 @@ export default function LeaderboardPage() {
             <AnimatePresence mode="popLayout">
               {others.map((u, idx) => (
                 <motion.div
-                  key={u.name}
+                  key={u.uid || u.rank.toString()}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -327,7 +327,7 @@ export default function LeaderboardPage() {
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-extrabold text-stone-900 text-base md:text-xl">Kamu</span>
+                      <span className="font-extrabold text-stone-900 text-base md:text-xl">{currentUser.name || "Kamu"}</span>
                     </div>
                   </div>
                 </div>

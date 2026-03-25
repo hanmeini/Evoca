@@ -6,19 +6,17 @@ import { ChevronRight } from "lucide-react";
 import { BackgroundMesh, FloatingOrnaments } from "../ui/GameVisuals";
 
 // Modular Onboarding Components
-import { MascotType, CommitmentLevel } from "./onboarding/types";
+import { MascotType } from "./onboarding/types";
 import { MASCOTS } from "./onboarding/constants";
 import { StepDots } from "./onboarding/SharedComponents";
 import { IntroStep } from "./onboarding/IntroStep";
 import { LoadingStep } from "./onboarding/LoadingStep";
 import { MascotSelectionStep } from "./onboarding/MascotSelectionStep";
-import { CommitmentStep } from "./onboarding/CommitmentStep";
 import { RewardStep } from "./onboarding/RewardStep";
 
 export default function OnboardingFlow() {
   const [step, setStep] = useState(1);
   const [selectedMascot, setSelectedMascot] = useState<MascotType>(MASCOTS[0].id);
-  const [commitment, setCommitment] = useState<CommitmentLevel | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(1);
 
   const handleMascotNav = (direction: 'next' | 'prev') => {
@@ -31,6 +29,13 @@ export default function OnboardingFlow() {
     
     setSelectedMascot(MASCOTS[nextIndex].id);
   };
+
+  // Persist mascot selection to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedMascot', selectedMascot);
+    }
+  }, [selectedMascot]);
 
   // Realistic variable-speed loading progress
   useEffect(() => {
