@@ -443,7 +443,7 @@ export default function DashboardOverviewPage() {
                         whileTap={isUnlocked ? { scale: 0.98 } : {}}
                         onClick={() => isUnlocked && setSelectedUnitId(unit.id)}
                         className={cn(
-                          "relative overflow-hidden rounded-[2.5rem] p-8 border-4 transition-all cursor-pointer group",
+                          "relative overflow-hidden rounded-4xl p-8 border-4 transition-all cursor-pointer group",
                           isUnlocked 
                             ? "bg-white border-stone-200 shadow-xl hover:border-indigo-500 shadow-stone-200/50" 
                             : "bg-stone-50 border-stone-100 opacity-60 grayscale cursor-not-allowed"
@@ -456,7 +456,7 @@ export default function DashboardOverviewPage() {
                         
                         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
                           {/* Monster Preview */}
-                          <div className="w-32 h-32 flex-shrink-0 relative">
+                          <div className="w-32 h-32 shrink-0 relative">
                              {unit.monsters[0]?.video ? (
                                <video src={unit.monsters[0].video} autoPlay loop muted playsInline className="w-full h-full object-contain mix-blend-multiply" />
                              ) : (
@@ -692,7 +692,7 @@ export default function DashboardOverviewPage() {
           {/* Right Sidebar - Desktop Only */}
           <div className="hidden lg:flex flex-col gap-6 ">
             {/* Streak Card - Video Mascot Edition */}
-            <div className="bg-white border-2 border-stone-200 rounded-[2rem] p-6 text-center">
+            <div className="bg-white border-2 border-stone-200 rounded-3xl p-6 text-center">
               {/* Mascot Video */}
               <div className={cn(
                 "w-48 h-48 mx-auto relative mb-4 transition-all duration-700 ease-in-out",
@@ -826,7 +826,7 @@ export default function DashboardOverviewPage() {
             </div>
 
             {/* Promo Card */}
-            <div className="bg-[#8b5cf6] rounded-[2rem] p-6 text-white relative overflow-hidden shadow-[0_8px_0_0_#7c3aed] group hover:translate-y-1 hover:shadow-[0_4px_0_0_#7c3aed] transition-all">
+            <div className="bg-[#8b5cf6] rounded-3xl p-6 text-white relative overflow-hidden shadow-[0_8px_0_0_#7c3aed] group hover:translate-y-1 hover:shadow-[0_4px_0_0_#7c3aed] transition-all">
               <div className="relative z-10">
                 <h3 className="text-xl font-black leading-tight uppercase tracking-tight italic">
                   Coba Evoca
@@ -848,7 +848,7 @@ export default function DashboardOverviewPage() {
             </div>
 
             {/* Leaderboard Card */}
-            <div className="bg-white border-2 border-stone-200 rounded-[2rem] p-6 shadow-sm hover:translate-y-1 transition-all">
+            <div className="bg-white border-2 border-stone-200 rounded-3xl p-6 shadow-sm hover:translate-y-1 transition-all">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest">
                   Papan Skor

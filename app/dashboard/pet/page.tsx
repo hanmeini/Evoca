@@ -11,27 +11,27 @@ import {
   Trophy,
   Utensils,
   Gamepad2,
-  Moon,
-  Sun,
-  Stars,
-  Coffee
+  Lock,
+  CheckCircle2,
+  ShoppingBag,
+  Info,
+  Book
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
 import { MASCOTS } from "@/src/components/home/onboarding/constants";
-import { UNITS } from "@/src/constants/units";
 
 // Particle component for interactions
-const Particle = ({ x, y, icon: Icon, color }: { x: number, y: number, icon: any, color: string }) => (
+const Particle = ({ x, y, icon: Icon, color, xOffset }: { x: number, y: number, icon: any, color: string, xOffset: number }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0, x, y }}
     animate={{ 
       opacity: [0, 1, 0], 
       scale: [0, 1.5, 0.5],
       y: y - 100,
-      x: x + (Math.random() - 0.5) * 50
+      x: x + xOffset
     }}
     transition={{ duration: 1, ease: "easeOut" }}
     className={cn("absolute pointer-events-none z-50", color)}
@@ -40,42 +40,65 @@ const Particle = ({ x, y, icon: Icon, color }: { x: number, y: number, icon: any
   </motion.div>
 );
 
+// Mascot Renderer Component (Image-only Evolution)
+const MascotRenderer = ({ mascotId, stage, isInteracting, interactionType }: { 
+  mascotId: string, 
+  stage: string, 
+  isInteracting: boolean,
+  interactionType: string | null
+}) => {
+  const [hasError, setHasError] = useState(false);
+  const [retryWithJpg, setRetryWithJpg] = useState(false);
+
+  const pngPath = `/pet/${mascotId}/${stage}.png`;
+  const jpgPath = `/pet/${mascotId}/${stage}.jpg`;
+  const fallbackImage = `/pet/${mascotId}/image.png`;
+
+  // Reset error states when mascot or stage changes
+  useEffect(() => {
+    setHasError(false);
+    setRetryWithJpg(false);
+  }, [mascotId, stage]);
+
+  const currentSrc = hasError ? fallbackImage : (retryWithJpg ? jpgPath : pngPath);
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <img
+        key={currentSrc}
+        src={currentSrc}
+        alt={`${mascotId} ${stage}`}
+        onError={() => {
+          if (!retryWithJpg && !hasError) {
+            setRetryWithJpg(true);
+          } else {
+            setHasError(true);
+          }
+        }}
+        className={cn(
+          "w-full h-full object-contain transition-all duration-700",
+          isInteracting && interactionType === "play" && "scale-110 -translate-y-4"
+        )}
+      />
+    </div>
+  );
+};
+
 export default function PetPage() {
-  const { userStats, user } = useAuth();
+  const { userStats, updateUserStats } = useAuth();
   const streak = userStats?.streak || 1;
   const gems = userStats?.gems || 0;
-  const [xp, setXp] = useState(userStats?.totalXP || 0);
-  const [userMascot, setUserMascot] = useState<string>("tiger");
-  const [particles, setParticles] = useState<{ id: number, x: number, y: number, icon: any, color: string }[]>([]);
-
-  // Load selected mascot
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("selectedMascot");
-      if (saved) setUserMascot(saved);
-    }
-  }, []);
-
-  const mascotData = useMemo(() => {
-    const found = MASCOTS.find(m => m.id === userMascot);
-    if (found) return found;
-    
-    // Fallback/Special case for Yeti
-    if (userMascot === "yeti") {
-      return {
-        id: "yeti",
-        name: "Yeti",
-        image: UNITS[0].monsters[2].image, // Adult Yeti
-        color: "text-indigo-600",
-        bg: "bg-indigo-50"
-      };
-    }
-    
-    return MASCOTS[0]; // Default to Tiger
-  }, [userMascot]);
-
+  const selectedMascot = userStats?.selectedMascot || "tiger";
+  const ownedMascots = userStats?.ownedMascots || ["tiger"];
+  const petLevels = userStats?.petLevels || { tiger: 1 };
+  
+  const currentLevel = petLevels[selectedMascot] || 1;
+  const currentXP = userStats?.totalXP || 0;
+  
+  const [particles, setParticles] = useState<{ id: number, x: number, y: number, xOffset: number, icon: any, color: string }[]>([]);
   const [isInteracting, setIsInteracting] = useState(false);
   const [interactionType, setInteractionType] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
 
   const todayStr = getTodayStr();
   const isQuestCompletedToday = useMemo(() => {
@@ -83,14 +106,47 @@ export default function PetPage() {
     return (d.documentsUploaded || 0) >= 1 || (d.messagesSent || 0) >= 5 || (d.quizzesPerfect || 0) >= 1 || (d.podcastsFinished || 0) >= 1;
   }, [userStats, todayStr]);
 
-  const level = Math.floor(xp / 100) + 1;
-  const progressToNextLevel = (xp % 100);
+  const isAlreadyClaimed = userStats?.claimedDailyXP?.[todayStr] || false;
+
+  const claimDailyXP = async () => {
+    if (isAlreadyClaimed) return;
+    
+    const xpGain = 50;
+    const newTotalXP = currentXP + xpGain;
+    const newLevel = Math.floor(newTotalXP / 100) + 1;
+    
+    const newPetLevels = { ...petLevels };
+    newPetLevels[selectedMascot] = newLevel;
+
+    const newClaimed = { ...(userStats?.claimedDailyXP || {}), [todayStr]: true };
+
+    await updateUserStats({
+      totalXP: newTotalXP,
+      petLevels: newPetLevels,
+      claimedDailyXP: newClaimed
+    });
+    
+    spawnParticles(10, Zap, "text-amber-400");
+  };
+
+  // Determine stage based on level
+  const stage = currentLevel < 10 ? "young" : currentLevel < 20 ? "teen" : "adult";
+  
+  const mascotData = useMemo(() => {
+    return MASCOTS.find(m => m.id === selectedMascot) || {
+      id: "tiger",
+      name: "Tiger Ninja",
+    };
+  }, [selectedMascot]);
+
+  const progressToNextLevel = (currentXP % 100);
 
   const spawnParticles = (count: number, icon: any, color: string) => {
     const newParticles = Array.from({ length: count }).map(() => ({
       id: Math.random(),
       x: (Math.random() - 0.5) * 100,
       y: 0,
+      xOffset: (Math.random() - 0.5) * 50,
       icon,
       color
     }));
@@ -100,19 +156,33 @@ export default function PetPage() {
     }, 1000);
   };
 
-  const handleInteraction = (type: "pet" | "feed" | "play") => {
+  const handleInteraction = async (type: "pet" | "feed" | "play") => {
     if (isInteracting) return;
     setIsInteracting(true);
     setInteractionType(type);
 
+    let xpGain = 0;
     if (type === "pet") {
       spawnParticles(5, Heart, "text-rose-400");
     } else if (type === "feed") {
-      spawnParticles(5, Coffee, "text-amber-600");
-      setXp(prev => prev + 10);
+      spawnParticles(5, Zap, "text-amber-600");
+      xpGain = 10;
     } else if (type === "play") {
       spawnParticles(5, Sparkles, "text-indigo-400");
-      setXp(prev => prev + 5);
+      xpGain = 5;
+    }
+
+    if (xpGain > 0) {
+      const newTotalXP = currentXP + xpGain;
+      const newLevel = Math.floor(newTotalXP / 100) + 1;
+      
+      const newPetLevels = { ...petLevels };
+      newPetLevels[selectedMascot] = newLevel;
+
+      await updateUserStats({
+        totalXP: newTotalXP,
+        petLevels: newPetLevels
+      });
     }
 
     setTimeout(() => {
@@ -121,270 +191,357 @@ export default function PetPage() {
     }, 1000);
   };
 
+  const buyPet = async (petId: string, price: number) => {
+    if (gems < price) return alert("Gems tidak cukup!");
+    if (ownedMascots.includes(petId)) return alert("Pet sudah dimiliki!");
+
+    const newOwned = [...ownedMascots, petId];
+    const newPetLevels = { ...petLevels, [petId]: 1 };
+
+    await updateUserStats({
+      gems: gems - price,
+      ownedMascots: newOwned,
+      petLevels: newPetLevels,
+      selectedMascot: petId
+    });
+  };
+
+  const selectPet = async (petId: string) => {
+    if (!ownedMascots.includes(petId)) return;
+    await updateUserStats({ selectedMascot: petId });
+  };
+
   return (
-    <div className="bg-[#fffdfa] min-h-screen relative overflow-x-hidden font-sans">
-      {/* Background Decor */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0" 
-           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} 
-      />
-      
-      {/* Top Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#fffdfa]/80 backdrop-blur-xl border-b border-orange-100 lg:left-72">
+    <div className="bg-[#f7f7f7] min-h-screen relative overflow-x-hidden font-sans pb-20">
+      {/* Duolingo Style Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b-2 border-stone-200 lg:left-72">
         <div className="max-w-[1240px] mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-amber-900/40 hover:text-amber-900 transition-all font-black uppercase text-[10px] tracking-widest group">
-            <div className="p-2 rounded-xl bg-orange-50 group-hover:bg-orange-100 transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span>Beranda</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="flex items-center gap-2 text-stone-400 hover:text-stone-900 transition-all font-black uppercase text-xs tracking-widest group">
+              <div className="p-2 rounded-xl bg-stone-100 group-hover:bg-stone-200 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </div>
+              <span>Beranda</span>
+            </Link>
+          </div>
           
           <div className="flex items-center gap-6">
-             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-orange-100 shadow-sm">
-                <Flame className={cn("w-4 h-4", isQuestCompletedToday ? "text-orange-500 fill-orange-500 animate-pulse" : "text-stone-300")} />
-                <span className="font-black text-xs text-stone-700">{streak} Hari</span>
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-stone-100">
+                <Flame className={cn("w-5 h-5", streak > 0 ? "text-[#ff9600] fill-[#ff9600]" : "text-stone-200")} />
+                <span className="font-black text-sm text-stone-600">{streak}</span>
              </div>
-             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-indigo-100 shadow-sm">
-                <span className="text-sm">💎</span>
-                <span className="font-black text-xs text-indigo-500">{gems}</span>
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-stone-100">
+                <span className="text-xl">💎</span>
+                <span className="font-black text-sm text-[#ffc800]">{gems}</span>
              </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-[1240px] mx-auto px-4 pt-28 pb-32 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 relative z-10">
+      {/* Guidebook Modal */}
+      <AnimatePresence>
+        {showGuide && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowGuide(false)}
+              className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border-2 border-stone-200"
+            >
+              <div className="bg-[#1cb0f6] p-8 text-white relative">
+                <button 
+                  onClick={() => setShowGuide(false)}
+                  className="absolute top-6 right-6 p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 rotate-90" />
+                </button>
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <Info className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight">Panduan Pet</h2>
+                </div>
+              </div>
+              
+              <div className="p-8 space-y-6">
+                <div className="flex gap-4 p-4 rounded-2xl border-2 border-stone-100">
+                  <div className="w-12 h-12 shrink-0 bg-[#58cc02] rounded-xl flex items-center justify-center text-white">
+                    <Trophy className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm uppercase mb-1">Evolusi Belajar</h3>
+                    <p className="text-xs text-stone-500 font-bold leading-relaxed">
+                      Selesaikan misi harian di Roadmap. Pet akan tumbuh setiap naik 10 level!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 p-4 rounded-2xl border-2 border-stone-100">
+                  <div className="w-12 h-12 shrink-0 bg-[#ff4b4b] rounded-xl flex items-center justify-center text-white">
+                    <Heart className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm uppercase mb-1">Kasih Sayang</h3>
+                    <p className="text-xs text-stone-500 font-bold leading-relaxed">
+                      Klaim hadiah, beri makan, dan ajak main agar Pet makin pintar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-8 bg-stone-50 border-t-2 border-stone-100">
+                <button 
+                  onClick={() => setShowGuide(false)}
+                  className="w-full py-4 bg-[#58cc02] border-b-4 border-[#46a302] text-white rounded-2xl font-black text-sm uppercase tracking-widest active:border-b-0 active:translate-y-1 transition-all"
+                >
+                  MENGERTI!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <div className="max-w-[1240px] mx-auto px-4 pt-28 pb-32 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 relative z-10">
         <div className="flex flex-col items-center">
-          {/* Main Pet Stage */}
-          <div className="relative w-full aspect-square max-w-[480px] flex items-center justify-center">
-            {/* Stage Decor */}
-            <div className="absolute inset-0 bg-linear-to-b from-orange-100/30 to-rose-100/20 rounded-[4rem] border-2 border-orange-50/50 shadow-inner" />
-            
-            {/* Mascot Container */}
+          {/* Claim Reward Banner */}
+          <AnimatePresence>
+            {isQuestCompletedToday && !isAlreadyClaimed && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="w-full max-w-lg mb-8 bg-[#8b5cf6] border-b-4 border-[#6d28d9] p-6 rounded-3xl flex items-center justify-between text-white shadow-xl"
+              >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                       <Zap className="w-6 h-6 fill-white text-white" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm uppercase tracking-tight">Misi Selesai!</p>
+                      <p className="text-xs font-bold opacity-80">+50 XP Evolusi Siap Diambil</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={claimDailyXP}
+                    className="px-6 py-3 bg-white text-[#8b5cf6] rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
+                  >
+                    KLAIM
+                  </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="relative w-full aspect-square max-w-[480px] flex items-center justify-center p-8 bg-white rounded-4xl border-2 border-stone-200">
             <motion.div 
                animate={isInteracting ? { 
                  scale: [1, 1.1, 0.95, 1],
                  y: interactionType === "play" ? [0, -40, 0] : 0 
                } : { 
-                 y: [0, -10, 0] 
+                 y: [0, -5, 0] 
                }}
                transition={{ 
-                 duration: isInteracting ? 0.4 : 4, 
+                 duration: isInteracting ? 0.4 : 3, 
                  repeat: isInteracting ? 0 : Infinity,
                  ease: "easeInOut" 
                }}
-               className="relative w-[70%] h-[70%] z-20"
+               className="relative w-[75%] h-[75%] z-20 flex items-center justify-center"
             >
-              <img
-                src={mascotData.image}
-                alt={mascotData.name}
-                className={cn(
-                  "w-full h-full object-contain drop-shadow-2xl transition-all duration-700",
-                  !isQuestCompletedToday && "grayscale opacity-60 scale-95"
-                )}
+              <MascotRenderer 
+                mascotId={selectedMascot} 
+                stage={stage} 
+                isInteracting={isInteracting} 
+                interactionType={interactionType} 
               />
 
-              {/* Interaction Particles */}
               {particles.map(p => (
-                <Particle key={p.id} x={p.x} y={p.y} icon={p.icon} color={p.color} />
+                <Particle key={p.id} x={p.x} y={p.y} xOffset={p.xOffset} icon={p.icon} color={p.color} />
               ))}
 
-              {/* Floating Bubble */}
               <AnimatePresence>
                 {isInteracting && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.5, y: 0 }}
                     animate={{ opacity: 1, scale: 1, y: -40 }}
                     exit={{ opacity: 0, scale: 0.5, y: -60 }}
-                    className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-6 py-3 rounded-2xl shadow-xl font-black text-xs uppercase text-amber-600 border-2 border-amber-50"
+                    className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white px-4 py-2 rounded-xl border-2 border-stone-100 shadow-xl font-black text-xs uppercase text-[#58cc02]"
                   >
-                    {interactionType === "pet" ? "❤ Sayang!" : interactionType === "feed" ? "🍴 Nyam!" : "✨ Seru!"}
+                    {interactionType === "pet" ? "❤ Love!" : interactionType === "feed" ? "🍴 Nyam!" : "✨ Fun!"}
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
-
-            {/* Platform Shadow */}
-            <div className="absolute bottom-16 w-32 h-6 bg-stone-900/5 blur-xl rounded-full scale-125" />
           </div>
 
-          {/* Info Section */}
-          <div className="text-center mt-12 mb-12">
-            <h1 className="text-5xl font-black text-amber-950 tracking-tighter uppercase mb-4 drop-shadow-sm">
+          <div className="text-center mt-8 mb-10">
+            <h1 className="text-4xl font-black text-stone-800 tracking-tight uppercase mb-2">
               {mascotData.name}
             </h1>
-            <div className="flex items-center justify-center gap-3">
-              <div className="px-5 py-2 rounded-xl bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-[0_4px_0_0_#c2410c] border-b border-white/20">
-                Peliharaan Utama
-              </div>
-              <div className="px-5 py-2 rounded-xl bg-amber-100 text-amber-700 font-black text-[10px] uppercase tracking-widest border border-amber-200 shadow-sm">
-                Level {level}
-              </div>
+            <div className="flex items-center justify-center gap-2">
+              <span className="px-3 py-1 rounded-lg bg-stone-100 text-stone-500 font-bold text-[10px] uppercase tracking-wider">
+                Lvl {currentLevel} • {stage.toUpperCase()}
+              </span>
             </div>
           </div>
 
-          {/* Interaction Grid */}
-          <div className="grid grid-cols-3 gap-6 w-full max-w-lg mb-16">
+          <div className="grid grid-cols-3 gap-4 w-full max-w-lg mb-12">
             {[
-              { id: "pet", icon: Heart, label: "Sayang", sub: "Kasih Sayang", color: "bg-rose-500", shadow: "shadow-rose-200", hover: "hover:bg-rose-600" },
-              { id: "feed", icon: Utensils, label: "Makan", sub: "+10 XP", color: "bg-amber-500", shadow: "shadow-amber-200", hover: "hover:bg-amber-600" },
-              { id: "play", icon: Gamepad2, label: "Main", sub: "+5 XP", color: "bg-indigo-500", shadow: "shadow-indigo-200", hover: "hover:bg-indigo-600" },
+              { id: "pet", icon: Heart, label: "Sayang", color: "bg-[#ff4b4b]", border: "border-[#d33131]" },
+              { id: "feed", icon: Utensils, label: "Makan", color: "bg-[#ff9600]", border: "border-[#cc7a00]" },
+              { id: "play", icon: Gamepad2, label: "Main", color: "bg-[#1cb0f6]", border: "border-[#1899d6]" },
             ].map((action) => (
               <motion.button
                 key={action.id}
-                whileHover={{ y: -5 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleInteraction(action.id as any)}
                 className={cn(
-                  "flex flex-col items-center gap-3 p-6 rounded-[2.5rem] bg-white border-2 border-stone-100 shadow-xl transition-all group",
-                  action.id === "pet" ? "hover:border-rose-100" : action.id === "feed" ? "hover:border-amber-100" : "hover:border-indigo-100"
+                  "flex flex-col items-center gap-2 py-4 rounded-2xl text-white font-black text-xs uppercase tracking-widest transition-all",
+                  action.color,
+                  "border-b-4",
+                  action.border,
+                  "active:border-b-0 active:translate-y-1"
                 )}
               >
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-2 transition-transform group-hover:rotate-6",
-                  action.color
-                )}>
-                  <action.icon className="w-7 h-7" />
-                </div>
-                <div className="text-center">
-                  <p className="text-[11px] font-black text-stone-800 uppercase tracking-widest">{action.label}</p>
-                  <p className="text-[8px] font-bold text-stone-400 uppercase tracking-tighter mt-1">{action.sub}</p>
-                </div>
+                <action.icon className="w-5 h-5 mb-1" />
+                {action.label}
               </motion.button>
             ))}
           </div>
+        </div>
 
-          {/* Growth Card */}
-          <div className="w-full max-w-sm bg-white border-2 border-orange-50 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
-            <div className="absolute -right-12 -top-12 w-32 h-32 bg-orange-100/30 rounded-full blur-3xl" />
+        <aside className="space-y-8">
+          <div className="bg-white rounded-[2rem] border-2 border-stone-200 p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-black text-sm uppercase tracking-tight text-stone-800">Pet Vitality</h3>
+              <Activity className="w-4 h-4 text-[#58cc02]" />
+            </div>
             
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8 text-amber-900/60 font-black text-[9px] uppercase tracking-[0.2em]">
-                <div className="flex items-center gap-2">
-                   <Activity className="w-3.5 h-3.5" />
-                   Progress Pertumbuhan
-                </div>
-                <span>{xp} / {level * 100} XP</span>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                 <div className="flex justify-between text-[10px] font-black uppercase text-stone-400">
+                   <span>XP Pertumbuhan</span>
+                   <span>{progressToNextLevel}/100</span>
+                 </div>
+                 <div className="h-4 bg-stone-100 rounded-full border-2 border-stone-200 overflow-hidden p-0.5">
+                   <motion.div 
+                     initial={{ width: 0 }}
+                     animate={{ width: `${progressToNextLevel}%` }}
+                     className="h-full bg-[#58cc02] rounded-full"
+                   />
+                 </div>
               </div>
               
-              <div className="h-6 bg-orange-50 rounded-full overflow-hidden p-1 shadow-inner border border-orange-100">
-                <motion.div 
-                  animate={{ width: `${progressToNextLevel}%` }}
-                  className="h-full bg-linear-to-r from-orange-400 to-amber-500 rounded-full relative"
-                >
-                   <div className="absolute inset-0 bg-white/20 animate-pulse pointer-events-none" />
-                </motion.div>
-              </div>
-
-              <div className="mt-8 flex items-center justify-around">
-                {[
-                  { icon: Sun, label: "Energi", val: streak > 0 ? "100%" : "40%", color: "text-amber-500" },
-                  { icon: Moon, label: "Tidur", val: "8/8h", color: "text-indigo-500" },
-                  { icon: Heart, label: "Cinta", val: "Maks", color: "text-rose-500" },
-                ].map((s, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2">
-                    <s.icon className={cn("w-4 h-4", s.color)} />
-                    <p className="text-[9px] font-black text-amber-950/40 uppercase tracking-widest">{s.label}</p>
-                    <p className="text-xs font-black text-amber-950">{s.val}</p>
-                  </div>
-                ))}
+              <div className="pt-4 border-t-2 border-stone-50 space-y-4">
+                 <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase">Status Mood</span>
+                    <span className="text-[10px] font-black text-[#58cc02] uppercase tracking-widest">Sangat Ceria</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase">Suka Makan</span>
+                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Buah-buahan</span>
+                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Sidebar */}
-        <aside className="space-y-8 lg:sticky lg:top-28 h-fit">
-           {/* Achievement Widget */}
-           <div className="bg-linear-to-br from-indigo-600 to-purple-700 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[40px] group-hover:scale-150 transition-transform duration-1000" />
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                    <Trophy className="w-6 h-6 text-amber-300" />
+          <div className="bg-white rounded-[2rem] border-2 border-stone-200 p-8 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-tight text-stone-800 mb-6">Tahap Evolusi</h3>
+            <div className="space-y-4">
+              {[
+                { s: "young", l: "1-9", label: "Young" },
+                { s: "teen", l: "10-19", label: "Teen" },
+                { s: "adult", l: "20+", label: "Adult" },
+              ].map((step) => (
+                <div key={step.s} className={cn(
+                  "flex items-center gap-4 p-3 rounded-xl border-2 transition-all",
+                  stage === step.s ? "bg-stone-50 border-stone-200" : "opacity-30 border-transparent grayscale"
+                )}>
+                  <div className={cn("w-2 h-2 rounded-full", stage === step.s ? "bg-[#58cc02]" : "bg-stone-300")} />
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-tight">{step.label}</p>
+                    <p className="text-[9px] font-bold text-stone-400 uppercase">Lv. {step.l}</p>
                   </div>
-                  <div>
-                    <h3 className="font-black text-xs uppercase tracking-widest">Master Pet</h3>
-                    <p className="text-[9px] font-bold opacity-60 uppercase">Unit 1: Selesai</p>
-                  </div>
+                  {stage === step.s && <CheckCircle2 className="w-4 h-4 text-[#58cc02]" />}
                 </div>
-                
-                <p className="text-xs font-medium leading-relaxed opacity-90 mb-6 italic">
-                  &quot;Peliharaanmu sangat bangga padamu! Terus belajar untuk membuka evolusi baru.&quot;
-                </p>
-
-                <div className="flex gap-2">
-                   {[1, 2, 3].map(i => (
-                     <div key={i} className={cn(
-                       "w-8 h-8 rounded-lg flex items-center justify-center text-xs",
-                       i === 1 ? "bg-amber-400" : "bg-white/10 opacity-30"
-                     )}>
-                        {i === 1 ? "🥇" : "🔒"}
-                     </div>
-                   ))}
-                </div>
-              </div>
-           </div>
-
-           {/* Vitality Bars */}
-           <div className="bg-white border-2 border-orange-50 rounded-[3rem] p-8 shadow-xl">
-              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-900/40 mb-8">Statistik Vitalitas</h3>
-              
-              <div className="space-y-6">
-                 {[
-                   { label: "Kelaparan", val: 82, color: "bg-amber-400" },
-                   { label: "Kebahagiaan", val: 95, color: "bg-rose-400" },
-                   { label: "Kesehatan", val: 100, color: "bg-emerald-400" },
-                 ].map((stat, i) => (
-                   <div key={i} className="space-y-2">
-                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-stone-600 px-1">
-                        <span>{stat.label}</span>
-                        <span className="text-amber-600">{stat.val}%</span>
-                     </div>
-                     <div className="h-3 bg-orange-50 rounded-full border border-orange-100 p-0.5 shadow-inner">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${stat.val}%` }}
-                          className={cn("h-full rounded-full transition-all duration-1000", stat.color)}
-                        />
-                     </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
-
-           {/* Tip Widget */}
-           <div className="bg-amber-50 border-2 border-amber-100 rounded-[2.5rem] p-8 text-amber-900/60">
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                   <Stars className="w-4 h-4 text-amber-500" />
-                 </div>
-                 <p className="font-black text-[10px] uppercase tracking-widest">Tips Penjaga Pet</p>
-              </div>
-              <p className="text-xs font-bold leading-relaxed mb-6">
-                Kasih makan dan main setiap hari supaya status vitalitas tetap 100% dan bonus XP berlipat ganda!
-              </p>
-              <button className="w-full py-4 bg-white text-amber-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-amber-100 shadow-sm border-b-4 hover:translate-y-0.5 transition-transform active:border-b-0">
-                PANDUAN PERAWATAN
-              </button>
-           </div>
+              ))}
+            </div>
+          </div>
         </aside>
       </div>
 
-      {/* Floating UI Elements */}
-      <div className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#1c1917]/95 backdrop-blur-xl px-8 py-5 rounded-[2.5rem] shadow-2xl border border-white/10 z-50">
-        <div className="flex items-center gap-6 pr-6 border-r border-white/10">
-           <div className="flex flex-col">
-              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Daily Goal</span>
-              <span className="text-xs font-black text-white">4/5 Misi</span>
-           </div>
-           <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg">
-              <Zap className="w-5 h-5 fill-current" />
-           </div>
+      <div className="max-w-[1240px] mx-auto px-4 mt-8 pb-32">
+        <h2 className="text-2xl font-black text-stone-800 uppercase tracking-tight mb-8 px-4 flex items-center gap-4">
+          <ShoppingBag className="w-6 h-6 text-indigo-500" />
+          Pasar & Koleksi Pet
+        </h2>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {MASCOTS.map((pet) => {
+            const isOwned = ownedMascots.includes(pet.id);
+            const isSelected = selectedMascot === pet.id;
+            
+            return (
+              <motion.div
+                key={pet.id}
+                whileHover={!isSelected ? { y: -5 } : {}}
+                onClick={() => isOwned ? selectPet(pet.id) : buyPet(pet.id, pet.price || 0)}
+                className={cn(
+                  "p-4 rounded-3xl border-2 transition-all cursor-pointer bg-white relative",
+                  isSelected ? "border-[#58cc02] bg-[#f7fff0]" : isOwned ? "border-stone-200 hover:border-stone-400" : "border-stone-100 opacity-60"
+                )}
+              >
+                <div className="aspect-square w-full mb-3 flex items-center justify-center p-2">
+                  <img 
+                    src={`/pet/${pet.id}/young.png`} 
+                    alt={pet.name}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `/pet/${pet.id}/image.png`;
+                    }}
+                    className={cn("w-full h-full object-contain", !isOwned && "grayscale opacity-40")}
+                  />
+                  {!isOwned && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Lock className="w-8 h-8 text-stone-400 opacity-50" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <h4 className="font-black text-xs uppercase tracking-tight text-stone-700 mb-1">{pet.name}</h4>
+                  {isSelected ? (
+                     <div className="text-[8px] font-black text-[#58cc02] uppercase tracking-widest">Aktif</div>
+                  ) : isOwned ? (
+                     <div className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Miliki</div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-xs">💎</span>
+                      <span className="font-black text-xs text-indigo-500">{pet.price}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
-        <Link href="/dashboard" className="text-xs font-black text-white uppercase tracking-[0.2em] hover:text-orange-400 transition-colors">
-          Buka Peta Jalan
-        </Link>
       </div>
+
+      {/* Duolingo Style Floating Guidebook Button */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowGuide(true)}
+        className="fixed bottom-8 right-8 z-60 flex items-center gap-3 px-6 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl shadow-xl group hover:border-[#1cb0f6] hover:text-[#1cb0f6] transition-all"
+      >
+        <Book className="w-6 h-6" />
+        <span className="font-black text-xs uppercase tracking-widest">Panduan</span>
+      </motion.button>
     </div>
   );
 }
-

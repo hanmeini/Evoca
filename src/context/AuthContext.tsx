@@ -16,6 +16,10 @@ interface UserStats {
   totalXP: number;
   streak: number;
   completedMissions: string[];
+  ownedMascots: string[];
+  petLevels: { [mascotId: string]: number };
+  selectedMascot: string;
+  claimedDailyXP?: { [date: string]: boolean };
   dailyProgress?: {
     [date: string]: {
       messagesSent?: number;
@@ -33,15 +37,25 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
   refreshStats: () => Promise<void>;
+  updateUserStats: (updates: Partial<UserStats>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  userStats: { gems: 500, totalXP: 0, streak: 1, completedMissions: [] },
+  userStats: { 
+    gems: 500, 
+    totalXP: 0, 
+    streak: 1, 
+    completedMissions: [],
+    ownedMascots: ["tiger"],
+    petLevels: { "tiger": 1 },
+    selectedMascot: "tiger"
+  },
   signInWithGoogle: async () => {},
   logOut: async () => {},
   refreshStats: async () => {},
+  updateUserStats: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -54,8 +68,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     totalXP: 0,
     streak: 1,
     completedMissions: [],
+    ownedMascots: ["tiger"],
+    petLevels: { "tiger": 1 },
+    selectedMascot: "tiger"
   });
   const router = useRouter();
+
+  const updateUserStats = async (updates: Partial<UserStats>) => {
+    if (!user) return;
+    try {
+      // Optimistic update
+      setUserStats(prev => ({ ...prev, ...updates }));
+
+      await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid, updates }),
+      });
+    } catch (e) {
+      console.error("Failed to update user stats:", e);
+      refreshStats(); // Revert on failure
+    }
+  };
 
   const refreshStats = async () => {
     if (!user) return;
@@ -65,12 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.data) {
         setUserStats({
           gems: typeof data.data.gems === "number" ? data.data.gems : 500,
-          totalXP:
-            typeof data.data.totalXP === "number" ? data.data.totalXP : 0,
+          totalXP: typeof data.data.totalXP === "number" ? data.data.totalXP : 0,
           streak: typeof data.data.streak === "number" ? data.data.streak : 1,
-          completedMissions: Array.isArray(data.data.completedMissions)
-            ? data.data.completedMissions
-            : [],
+          completedMissions: Array.isArray(data.data.completedMissions) ? data.data.completedMissions : [],
+          ownedMascots: Array.isArray(data.data.ownedMascots) ? data.data.ownedMascots : ["tiger"],
+          petLevels: data.data.petLevels || { "tiger": 1 },
+          selectedMascot: data.data.selectedMascot || "tiger",
           dailyProgress: data.data.dailyProgress || {},
         });
       }
@@ -100,7 +134,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ) {
           return prev;
         }
-        return { gems: 500, totalXP: 0, streak: 1, completedMissions: [] };
+        return { 
+          gems: 500, 
+          totalXP: 0, 
+          streak: 1, 
+          completedMissions: [],
+          ownedMascots: ["tiger"],
+          petLevels: { "tiger": 1 },
+          selectedMascot: "tiger"
+        };
       });
       return;
     }
@@ -118,6 +160,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             completedMissions: Array.isArray(data.completedMissions)
               ? data.completedMissions
               : [],
+            ownedMascots: Array.isArray(data.ownedMascots) ? data.ownedMascots : ["tiger"],
+            petLevels: data.petLevels || { "tiger": 1 },
+            selectedMascot: data.selectedMascot || "tiger",
             dailyProgress: data.dailyProgress || {},
           });
         }
@@ -177,6 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         logOut,
         refreshStats,
+        updateUserStats,
       }}
     >
       {children}
