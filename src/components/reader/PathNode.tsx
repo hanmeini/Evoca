@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/src/lib/utils";
-import { Check, LucideIcon, Sword, Gift, Zap } from "lucide-react";
+import { Check, LucideIcon, Sword, Gift, Zap, Lock } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -73,7 +73,7 @@ export function PathNode({
   const ringColor = t.ring;
 
   // Use dummy icons if special type is set
-  const NodeIcon = specialType === "monster" ? Sword : specialType === "chest" ? Gift : specialType === "gem" ? Gift : Icon;
+  const NodeIcon = isLocked ? Lock : (specialType === "monster" ? Sword : specialType === "chest" ? Gift : specialType === "gem" ? Gift : Icon);
 
   const renderContent = () => {
     const inner = (
@@ -118,7 +118,7 @@ export function PathNode({
 
     if (onClick) {
       return (
-        <button onClick={(e) => { e.preventDefault(); onClick(); }} className={cn(circleClasses, "cursor-pointer outline-none border-none")}>
+        <button onClick={(e) => { e.preventDefault(); onClick(); }} className={cn(circleClasses, "cursor-pointer outline-none")}>
           {inner}
           {checkmark}
         </button>

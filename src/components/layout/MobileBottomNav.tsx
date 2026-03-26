@@ -18,17 +18,31 @@ export function MobileBottomNav() {
     const todayStr = getTodayStr();
     const d = userStats.dailyProgress?.[todayStr] || {};
     
-    const templates = [
+    const dailyTemplates = [
+      { id: "daily-visit", goal: 1, current: 1 },
       { id: "m1", goal: 1, current: d.documentsUploaded || 0 },
       { id: "m2", goal: 5, current: d.messagesSent || 0 },
       { id: "m4", goal: 1, current: d.podcastsFinished || 0 },
       { id: "m3", goal: 1, current: d.quizzesPerfect || 0 },
     ];
 
-    return templates.some(m => 
+    const achievementTemplates = [
+      { id: "a-exemplary", goal: 10, current: userStats.totalDocs || 0 },
+      { id: "a-star-student", goal: 50, current: userStats.completedMissionsCount || 0 },
+      { id: "a-legend", goal: 5000, current: userStats.gems || 0 },
+    ];
+
+    const hasDaily = dailyTemplates.some(m => 
       m.current >= m.goal && 
       !userStats.completedMissions?.includes(`claim-${todayStr}-${m.id}`)
     );
+
+    const hasAchievement = achievementTemplates.some(m => 
+      m.current >= m.goal && 
+      !userStats.completedMissions?.includes(`claim-${m.id}`)
+    );
+
+    return hasDaily || hasAchievement;
   }, [userStats]);
 
   const navItems = [

@@ -31,15 +31,33 @@ export async function POST(req: NextRequest) {
     };
 
     const isMission = documentId.startsWith("mission-");
+    const isRoadmapReward = stage === "reward";
     
-    // For missions, we skip the document check or create a temporary record
-    if (isMission) {
-       await userRef.set({
+    // For missions or roadmap rewards, we skip the document check or treat it specially
+    if (isMission || isRoadmapReward) {
+       const userSnap = await userRef.get();
+       const userData = userSnap.data();
+       
+       // For roadmap rewards, we use a unique stage key if it's a generic "reward" stage
+       const claimKey = isRoadmapReward ? (stage === "reward" && documentId.startsWith("dummy-") ? `claim-roadmap-${documentId}` : `claim-reward-${documentId}`) : stage;
+
+       if (userData?.completedMissions?.includes(claimKey)) {
+          return NextResponse.json({ success: true, message: "Reward already claimed" });
+       }
+
+       const updateData: any = {
           gems: FieldValue.increment(gemsGained || 0),
-          completedMissions: FieldValue.arrayUnion(stage),
+          completedMissions: FieldValue.arrayUnion(claimKey),
+          completedMissionsCount: FieldValue.increment(1),
           recentActivity: FieldValue.serverTimestamp()
-       }, { merge: true });
-       return NextResponse.json({ success: true, message: "Mission reward claimed" });
+       };
+       
+       if (isMission && xpGained) {
+          updateData.totalXP = FieldValue.increment(xpGained);
+       }
+
+       await userRef.set(updateData, { merge: true });
+       return NextResponse.json({ success: true, message: "Reward claimed successfully" });
     }
 
     const docRef = adminDb.collection("documents").doc(documentId);

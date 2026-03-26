@@ -9,8 +9,10 @@ import { useAuth } from "@/src/context/AuthContext";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Sparkles, BookOpen, Trophy, Flame, Zap, Gift, ChevronLeft } from "lucide-react";
+import { Bell, Sparkles, Sword, Trophy, Flame, Zap, Gift, ChevronLeft } from "lucide-react";
 import { UNITS } from "@/src/constants/units";
+import Lottie from "lottie-react";
+import missionCompletedAnim from "@/public/animation/mission-completed.json";
 
 interface LeaderboardUser {
   uid: string;
@@ -54,6 +56,8 @@ interface DocumentHistory {
 
 const calculateProgress = (doc: DocumentHistory) => {
   const completedStages = doc.completedStages || [];
+  if (completedStages.includes("reward")) return 100;
+  
   const isDummy = doc.id.startsWith("dummy-");
 
   if (isDummy) return 0;
@@ -98,10 +102,32 @@ export default function DashboardOverviewPage() {
   const [mascotQuote, setMascotQuote] = useState("Halo!");
   const [isReadyToAnimate, setIsReadyToAnimate] = useState(false);
   const [showClaimReward, setShowClaimReward] = useState<{show: boolean, amount: number}>({ show: false, amount: 0 });
+  const [isMissionActive, setIsMissionActive] = useState(false);
+  const [isBlurred, setIsBlurred] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
   const [userMascot, setUserMascot] = useState<string | null>(null);
   const router = useRouter();
+  const [showStreakAnim, setShowStreakAnim] = useState(false);
+  const [earnedXP, setEarnedXP] = useState(250);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get("completed") === "true") {
+        setShowStreakAnim(true);
+        // Play success sound
+        const audio = new Audio('/sounds/SFX_SUCCESS.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(e => console.error("Audio block:", e));
+        
+        // Remove param directly via history API to avoid navigation
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+        
+        setTimeout(() => setShowStreakAnim(false), 4000);
+      }
+    }
+  }, []);
   // Load selected mascot from onboarding
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -116,7 +142,7 @@ export default function DashboardOverviewPage() {
         const res = await fetch("/api/leaderboard?t=" + Date.now());
         const data = await res.json();
         if (data.success) {
-          setLeaderboard(data.leaderboard.slice(0, 5));
+          setLeaderboard(data.leaderboard.slice(0, 3));
         }
       } catch (e) {
         console.error("Leaderboard fetch error:", e);
@@ -135,8 +161,25 @@ export default function DashboardOverviewPage() {
         createdAt: new Date().toISOString(),
       });
     }
-    return paddedHistory.reverse();
-  }, [history]);
+    const nodes = paddedHistory.reverse();
+
+    // Inject claimed status for roadmap rewards
+    return nodes.map(node => {
+      const claimKey = node.id.startsWith("dummy-") 
+        ? `claim-roadmap-${node.id}` 
+        : `claim-reward-${node.id}`;
+      
+      const isRewardClaimed = userStats?.completedMissions?.includes(claimKey);
+      
+      if (isRewardClaimed) {
+        return {
+          ...node,
+          completedStages: [...(node.completedStages || []), "reward"]
+        };
+      }
+      return node;
+    });
+  }, [history, userStats?.completedMissions]);
 
   // Pre-calculate the current active mission index
   const firstUnfinishedIdx = useMemo(() => {
@@ -206,9 +249,8 @@ export default function DashboardOverviewPage() {
       }
 
       try {
-        // Fetch History with cache-busting timestamp
         const histRes = await fetch(
-          `/api/history?userId=${user.uid}&t=${Date.now()}`,
+          `/api/history?userId=${user.uid}&t=${Date.now()}`
         );
         const histData = await histRes.json();
         if (histData.success && histData.history) {
@@ -317,6 +359,38 @@ export default function DashboardOverviewPage() {
       missions.find((m) => !m.completed) || missions.find((m) => !m.claimed)
     );
   }, [userStats, todayStr]);
+  
+  const hasClaimableMissions = useMemo(() => {
+    if (!userStats) return false;
+    const todayStr = getTodayStr();
+    const d = userStats.dailyProgress?.[todayStr] || {};
+    
+    const dailyTemplates = [
+      { id: "daily-visit", goal: 1, current: 1 },
+      { id: "m1", goal: 1, current: d.documentsUploaded || 0 },
+      { id: "m2", goal: 5, current: d.messagesSent || 0 },
+      { id: "m4", goal: 1, current: d.podcastsFinished || 0 },
+      { id: "m3", goal: 1, current: d.quizzesPerfect || 0 },
+    ];
+
+    const achievementTemplates = [
+      { id: "a-exemplary", goal: 10, current: userStats.totalDocs || 0 },
+      { id: "a-star-student", goal: 50, current: userStats.completedMissionsCount || 0 },
+      { id: "a-legend", goal: 5000, current: userStats.gems || 0 },
+    ];
+
+    const hasDaily = dailyTemplates.some(m => 
+      m.current >= m.goal && 
+      !userStats.completedMissions?.includes(`claim-${todayStr}-${m.id}`)
+    );
+
+    const hasAchievement = achievementTemplates.some(m => 
+      m.current >= m.goal && 
+      !userStats.completedMissions?.includes(`claim-${m.id}`)
+    );
+
+    return hasDaily || hasAchievement;
+  }, [userStats]);
 
   return (
     <>
@@ -343,7 +417,65 @@ export default function DashboardOverviewPage() {
       `,
         }}
       />
-      <div className="bg-white min-h-screen pb-32 font-sans">
+      {/* Streak / Quest Completed Celebration Overlay */}
+      <AnimatePresence>
+        {showStreakAnim && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+          >
+            {/* Dark overlay backdrop */}
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 0.7 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-stone-900/70 backdrop-blur-sm"
+            />
+            {/* Lottie Animation */}
+            <motion.div 
+               initial={{ scale: 0.8, y: 50 }}
+               animate={{ scale: 1, y: 0 }}
+               exit={{ scale: 0.8, y: 50, opacity: 0 }}
+               className="relative z-10 w-96 max-w-[90vw]"
+            >
+               <Lottie 
+                 animationData={missionCompletedAnim} 
+                 loop={false}
+                 className="w-full drop-shadow-2xl"
+               />
+               <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1 }}
+                  className="text-center mt-[-40px]"
+               >
+                  <h2 className="text-4xl font-black text-amber-400 uppercase tracking-tighter drop-shadow-md">
+                    Quest Selesai!
+                  </h2>
+                  <p className="text-amber-100 font-bold tracking-widest uppercase mt-2 drop-shadow-sm text-sm">
+                    Streak Membara 🔥
+                  </p>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.5, type: "spring" }}
+                    className="mt-4 bg-indigo-600/90 text-white px-6 py-2 rounded-full font-black text-lg border-2 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] inline-flex gap-2 items-center"
+                  >
+                    <Zap className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    +{earnedXP} XP
+                  </motion.div>
+               </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className={cn(
+        "min-h-screen font-sans transition-all duration-700",
+        isBlurred && "blur-xl grayscale-[0.3] scale-[0.98] pointer-events-none"
+      )}>
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-stone-200 px-4 md:px-8 py-4">
           <div className="max-w-[1240px] mx-auto flex items-center justify-between md:justify-end">
@@ -359,18 +491,18 @@ export default function DashboardOverviewPage() {
 
             <div className="flex items-center gap-4 md:gap-8">
               {/* Duolingo Stats Icons */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 md:gap-6">
                 <Link
                   href="/dashboard/missions"
                   className={cn(
                     "flex items-center gap-2 group cursor-pointer transition-all duration-500",
-                    !isQuestCompletedToday && "grayscale contrast-125 opacity-70"
+                    !isQuestCompletedToday && "grayscale opacity-50"
                   )}
                   title={isQuestCompletedToday ? "Streak Aktif!" : "Selesaikan misi untuk menyalakan api!"}
                 >
-                  <span className={cn("text-xl transition-transform", isQuestCompletedToday && "animate-pulse scale-110")}>🔥</span>
+                  <Flame className={cn("w-6 h-6", isQuestCompletedToday ? "text-orange-500 fill-orange-500 animate-pulse" : "text-stone-300")} />
                   <span className={cn(
-                    "text-sm font-black transition-colors",
+                    "text-lg font-black transition-colors",
                     isQuestCompletedToday ? "text-[#ff9600]" : "text-stone-400"
                   )}>
                     {userStats.streak || 1}
@@ -381,8 +513,8 @@ export default function DashboardOverviewPage() {
                   className="flex items-center gap-2 group cursor-pointer"
                   title="Total XP"
                 >
-                  <span className="text-xl">⭐</span>
-                  <span className="text-sm font-black text-[#8b5cf6] group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6 text-indigo-500 fill-indigo-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-lg font-black text-indigo-600">
                     <CountingNumber value={userStats.totalXP || 0} />
                   </span>
                 </Link>
@@ -391,22 +523,22 @@ export default function DashboardOverviewPage() {
                   className="flex items-center gap-2 group cursor-pointer"
                   title="Permata"
                 >
-                  <span className="text-xl">💎</span>
-                  <span className="text-sm font-black text-[#1cb0f6] group-hover:scale-110 transition-transform">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#fcd34d" viewBox="0 0 256 256" className="w-6 h-6 group-hover:scale-110 transition-transform"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                  <span className="text-lg font-black text-amber-600 group-hover:scale-110 transition-transform">
                     <CountingNumber value={userStats.gems || 500} />
                   </span>
                 </Link>
               </div>
 
               <div className="flex items-center gap-2">
-                <button className="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shadow-md border-b-4 border-amber-300">
-                  <Sparkles className="w-5 h-5" />
-                </button>
+                <Link href="/dashboard/pet" className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shadow-md border-b-4 border-amber-300 hover:scale-105 transition-transform">
+                  <Sparkles className="w-5 h-5 fill-amber-500/20" />
+                </Link>
                 <div className="relative group">
-                  <button className="w-10 h-10 bg-white border border-stone-200 rounded-2xl flex items-center justify-center shadow-sm hover:bg-stone-50 transition-colors">
+                  <button className="w-10 h-10 bg-white border-2 border-stone-100 rounded-full flex items-center justify-center shadow-sm hover:bg-stone-50 transition-colors">
                     <Bell className="w-5 h-5 text-stone-400" />
                   </button>
-                  <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+                  <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
                 </div>
               </div>
             </div>
@@ -509,10 +641,10 @@ export default function DashboardOverviewPage() {
               /* Quest Path View */
               <div className="flex flex-col items-center w-full space-y-12 relative py-12">
                  {/* Back to Hub Button */}
-                 <div className="sticky top-0 w-full z-50 flex justify-start pointer-events-none pb-4">
+                 <div className="w-full flex justify-start pb-4">
                    <button 
                      onClick={() => setSelectedUnitId(null)}
-                     className="pointer-events-auto flex items-center gap-2 px-6 py-2 bg-white border-2 border-stone-200 rounded-full text-stone-500 font-black text-[10px] uppercase tracking-widest hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900 transition-all shadow-md mt-4"
+                     className="flex items-center gap-2 px-6 py-2 bg-white border-2 border-stone-200 rounded-full text-stone-500 font-black text-[10px] uppercase tracking-widest hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900 transition-all shadow-md"
                    >
                       <ChevronLeft className="w-4 h-4" /> Kembali
                    </button>
@@ -580,16 +712,19 @@ export default function DashboardOverviewPage() {
                               stage: "reward",
                               userId: user?.uid,
                               gemsGained: 50,
-                              xpGained: 50
+                              xpGained: 0
                             }),
                           });
 
                           if (res.ok) {
-                            setShowClaimReward({ show: true, amount: 50 });
+                            setIsMissionActive(true);
+                            setIsBlurred(true);
+                            
                             setTimeout(() => {
-                              setShowClaimReward({ show: false, amount: 0 });
+                              setIsMissionActive(false);
+                              setIsBlurred(false);
                               router.refresh();
-                            }, 3000);
+                            }, 4500);
                           }
                         } catch (e) {
                           console.error(e);
@@ -665,7 +800,7 @@ export default function DashboardOverviewPage() {
                               progress={isRewardNode ? (status === "completed" ? 100 : 0) : progress}
                               subProgress={isRewardNode ? (status === "completed" ? "DIKLAIM" : "BARU") : getSubProgress(doc)}
                               title={isRewardNode ? "Harta Karun" : (doc.metadata?.title || doc.fileName)}
-                              icon={isDummy ? Gift : (isRewardNode ? Gift : BookOpen)}
+                              icon={isRewardNode ? Gift : Sword}
                               status={status}
                               href={
                                 isUnlocked && !isRewardNode
@@ -673,9 +808,9 @@ export default function DashboardOverviewPage() {
                                   : undefined
                               }
                               onClick={isRewardNode ? handleClaimReward : undefined}
-                              specialType={isRewardNode ? "chest" : (isDummy ? "chest" : undefined)}
+                              specialType={isRewardNode ? "chest" : undefined}
                               isTooltipVisible={status === "current"}
-                              theme={activeUnit.theme}
+                              theme={`evoca${(Math.floor(globalIdx / 5) % 5) + 1}` as any}
                               pdfUrl={doc.fileUrl}
                             />
                           </div>
@@ -744,36 +879,6 @@ export default function DashboardOverviewPage() {
                   Streak {userStats.streak || 1} Hari
                 </p>
 
-                {/* Temporary Test Button as requested */}
-                <button
-                  onClick={async () => {
-                    console.log("[DEBUG] Cheat button clicked. UID:", user?.uid);
-                    if (user?.uid) {
-                      try {
-                        const nameParam = user.displayName ? `&displayName=${encodeURIComponent(user.displayName)}` : "";
-                        const photoParam = user.photoURL ? `&photoURL=${encodeURIComponent(user.photoURL)}` : "";
-                        const res = await fetch(`/api/test-xp?userId=${user.uid}&amount=500${nameParam}${photoParam}`);
-                        const data = await res.json();
-                        console.log("[DEBUG] API Response:", data);
-                        if (data.success) {
-                           alert(data.message);
-                           window.location.reload();
-                        } else {
-                           alert("Gagal: " + data.error);
-                        }
-                      } catch (err) {
-                        console.error("[DEBUG] Fetch error:", err);
-                        alert("Terjadi kesalahan koneksi.");
-                      }
-                    } else {
-                      alert("Error: User UID tidak ditemukan. Pastikan Anda sudah login.");
-                      console.log("[DEBUG] User object in AuthContext:", user);
-                    }
-                  }}
-                  className="mt-2 text-[8px] bg-rose-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-rose-700 transition-colors shadow-sm"
-                >
-                  Cheat: +500 XP
-                </button>
               </div>
 
               <div className="flex justify-between items-center gap-1.5 px-2">
@@ -902,10 +1007,18 @@ export default function DashboardOverviewPage() {
               {/* Background Decoration */}
               <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-1000" />
               <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-amber-200/20 rounded-full blur-2xl" />
+              
+              {/* Floating Star in Background */}
+              <div className="absolute -right-4 -bottom-4 w-32 h-32 opacity-20 pointer-events-none group-hover:scale-125 transition-transform duration-700">
+                <Sparkles className="w-full h-full text-white" />
+              </div>
 
               <div className="flex items-center justify-between mb-6 relative z-10">
-                <h3 className="text-sm font-black text-amber-950 uppercase tracking-widest drop-shadow-sm">
+                <h3 className="text-sm font-black text-amber-950 uppercase tracking-widest drop-shadow-sm flex items-center gap-2">
                   Misi Harian
+                  {hasClaimableMissions && (
+                    <span className="w-2 h-2 bg-red-500 rounded-full border border-white shadow-sm animate-pulse" />
+                  )}
                 </h3>
                 <Link href="/dashboard/missions" className="text-[10px] font-black text-amber-900/80 hover:text-amber-950 uppercase tracking-wider transition-colors">
                   LIHAT SEMUA
@@ -985,11 +1098,16 @@ export default function DashboardOverviewPage() {
             exit={{ opacity: 0, scale: 0.5 }}
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden">
+             <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden">
                <div className="relative z-10">
-                  <div className="text-6xl mb-4">💎</div>
-                  <h2 className="text-3xl font-black text-indigo-600 uppercase mb-2">Hebat!</h2>
-                  <p className="text-stone-500 font-bold uppercase text-xs tracking-widest">+ {showClaimReward.amount} Permata Berhasil Diklaim</p>
+                  <div className="flex justify-center mb-6">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-20 h-20 animate-bounce drop-shadow-xl"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                  </div>
+                    <p className="text-3xl font-black text-amber-600 uppercase mb-2">Hebat!</p>
+                    <div className="flex flex-col gap-1 items-center">
+                       <p className="text-stone-500 font-bold uppercase text-[9px] tracking-widest">+ {showClaimReward.amount} Permata Kuning</p>
+                       <p className="text-indigo-500 font-black uppercase text-[10px] tracking-widest">+ {showClaimReward.amount} XP Petualang</p>
+                    </div>
                </div>
                
                {/* Confetti-like bits with Framer Motion */}
@@ -1009,6 +1127,81 @@ export default function DashboardOverviewPage() {
                  </motion.div>
                ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full Screen Mission Completed Animation */}
+      <AnimatePresence>
+        {isMissionActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.5, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              className="w-full max-w-2xl px-8"
+            >
+               <div className="bg-white/90 backdrop-blur-2xl p-12 rounded-[4rem] shadow-[0_32px_128px_rgba(0,0,0,0.3)] border-4 border-amber-400 text-center relative overflow-hidden group">
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-80 h-80 mb-2">
+                      <Lottie 
+                        animationData={missionCompletedAnim} 
+                        loop={false}
+                        onComplete={() => {
+                           // Optional: maybe add some confetti or close after some delay
+                        }}
+                      />
+                    </div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1 }}
+                      className="space-y-4"
+                    >
+                      <h2 className="text-5xl font-black text-amber-600 uppercase tracking-tighter drop-shadow-sm">
+                        LUAR BIASA!
+                      </h2>
+                      <div className="flex flex-col items-center">
+                         <div className="flex items-center gap-3 bg-amber-100 px-8 py-4 rounded-3xl border-2 border-amber-200">
+                           <div className="w-10 h-10 relative">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                           </div>
+                           <span className="text-3xl font-black text-amber-700">+50 PERMATA</span>
+                         </div>
+                         <p className="mt-4 text-stone-500 font-bold uppercase tracking-widest text-xs">Petualanganmu Berlanjut!</p>
+                      </div>
+                    </motion.div>
+                  </div>
+                  
+                  {/* Decorative Sparkles */}
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      animate={{ 
+                        opacity: [0, 1, 0],
+                        scale: [0.5, 1, 0.5],
+                        x: Math.random() * 400 - 200,
+                        y: Math.random() * 400 - 200
+                      }}
+                      transition={{ 
+                        duration: 3 + Math.random() * 2,
+                        repeat: Infinity,
+                        delay: Math.random() * 2
+                      }}
+                      className="absolute top-1/2 left-1/2 text-3xl pointer-events-none"
+                    >
+                      ✨
+                    </motion.div>
+                  ))}
+               </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

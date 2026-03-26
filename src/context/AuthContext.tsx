@@ -16,6 +16,8 @@ interface UserStats {
   totalXP: number;
   streak: number;
   completedMissions: string[];
+  totalDocs?: number;
+  completedMissionsCount?: number;
   dailyProgress?: {
     [date: string]: {
       messagesSent?: number;
@@ -38,7 +40,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  userStats: { gems: 500, totalXP: 0, streak: 1, completedMissions: [] },
+  userStats: { gems: 500, totalXP: 0, streak: 1, completedMissions: [], totalDocs: 0, completedMissionsCount: 0 },
   signInWithGoogle: async () => {},
   logOut: async () => {},
   refreshStats: async () => {},
@@ -54,6 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     totalXP: 0,
     streak: 1,
     completedMissions: [],
+    totalDocs: 0,
+    completedMissionsCount: 0,
   });
   const router = useRouter();
 
@@ -71,6 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           completedMissions: Array.isArray(data.data.completedMissions)
             ? data.data.completedMissions
             : [],
+          totalDocs: typeof data.data.totalDocs === "number" ? data.data.totalDocs : 0,
+          completedMissionsCount: typeof data.data.completedMissionsCount === "number" ? data.data.completedMissionsCount : 0,
           dailyProgress: data.data.dailyProgress || {},
         });
       }
@@ -118,6 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             completedMissions: Array.isArray(data.completedMissions)
               ? data.completedMissions
               : [],
+            totalDocs: typeof data.totalDocs === "number" ? data.totalDocs : 0,
+            completedMissionsCount: typeof data.completedMissionsCount === "number" ? data.completedMissionsCount : 0,
             dailyProgress: data.dailyProgress || {},
           });
         }

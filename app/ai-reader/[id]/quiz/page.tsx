@@ -94,22 +94,27 @@ export default function AiReaderQuizPage({
     if (isAnswered || quizData.length === 0) return;
     setSelectedOption(index);
     setIsAnswered(true);
-
-    if (index === quizData[currentQuestion].answerIndex) {
+    const isCorrect = index === quizData[currentQuestion].answerIndex;
+    if (isCorrect) {
       setScore((s) => s + 1);
     }
+    // Store last answer correctness for final score calculation
+    (handleSelect as any)._lastCorrect = isCorrect;
   };
 
-  const nextQuestion = async () => {
+  const nextQuestion = async (lastAnswerCorrect?: boolean) => {
     if (currentQuestion < quizData.length - 1) {
       setCurrentQuestion((c) => c + 1);
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
+      // Calculate final score correctly, accounting for the last question
+      const finalScore = lastAnswerCorrect !== undefined ? (lastAnswerCorrect ? score + 1 : score) : score;
+      setScore(finalScore);
       setIsFinished(true);
       if (user) {
         try {
-          const earnedXP = score * 20;
+          const earnedXP = finalScore * 20;
           setXpAwarded(earnedXP);
           await fetch('/api/progress', {
             method: 'POST',
@@ -119,7 +124,7 @@ export default function AiReaderQuizPage({
               stage: "quiz", 
               userId: user.uid, 
               xpGained: earnedXP,
-              score: score,
+              score: finalScore,
               total: quizData.length
             }),
           });
@@ -133,16 +138,24 @@ export default function AiReaderQuizPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4 py-4">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg border-2 border-white animate-bounce-slow bg-[#F472B6]">
-          <Loader2 className="w-6 h-6 text-white animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4 py-4 bg-[#fff8f0]">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mb-4 shadow-2xl border-b-8 border-pink-400 bg-[#F472B6] animate-bounce">
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          </div>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-pink-200/50 rounded-full blur-md" />
         </div>
-        <p className="font-serif text-xl font-black text-stone-900 mb-1 uppercase tracking-tight">
+        <p className="font-black text-2xl text-stone-900 mb-1 uppercase tracking-tight">
           Membuat Kuis AI...
         </p>
         <p className="text-stone-500 font-medium max-w-sm">
-          Membaca dokumen dan merancang pertanyaan menantang.
+          AI sedang merancang pertanyaan menantang dari materimu.
         </p>
+        <div className="flex gap-2 mt-6">
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="w-2.5 h-2.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -329,7 +342,7 @@ export default function AiReaderQuizPage({
           {isAnswered && (
             <div className="flex justify-end animate-in fade-in slide-in-from-bottom-4 duration-500">
               <button
-                onClick={nextQuestion}
+                onClick={() => nextQuestion((handleSelect as any)._lastCorrect)}
                 className="inline-flex h-14 items-center justify-center rounded-full bg-stone-900 px-8 text-sm font-bold text-white shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl"
               >
                 {currentQuestion < quizData.length - 1

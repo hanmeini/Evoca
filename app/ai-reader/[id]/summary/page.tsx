@@ -6,10 +6,23 @@ import { cn } from "@/src/lib/utils";
 
 export default async function AiReaderSummaryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ theme?: string }>;
 }) {
   const { id } = await params;
+  const { theme: themeParam } = await searchParams;
+
+  // Theme palette matching PathNode THEMES
+  const THEME_PALETTES: Record<string, { primary: string; light: string; border: string; lightBg: string; dot: string; badge: string }> = {
+    evoca1: { primary: "#8b5cf6", light: "#ede9fe", border: "#c4b5fd", lightBg: "#f5f3ff", dot: "#a78bfa", badge: "bg-purple-50 text-purple-600 border-purple-100" },
+    evoca2: { primary: "#6366f1", light: "#e0e7ff", border: "#a5b4fc", lightBg: "#eef2ff", dot: "#818cf8", badge: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+    evoca3: { primary: "#3b82f6", light: "#dbeafe", border: "#93c5fd", lightBg: "#eff6ff", dot: "#60a5fa", badge: "bg-blue-50 text-blue-600 border-blue-100" },
+    evoca4: { primary: "#d946ef", light: "#fce7f3", border: "#f0abfc", lightBg: "#fdf4ff", dot: "#e879f9", badge: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100" },
+    evoca5: { primary: "#0ea5e9", light: "#e0f2fe", border: "#7dd3fc", lightBg: "#f0f9ff", dot: "#38bdf8", badge: "bg-sky-50 text-sky-600 border-sky-100" },
+  };
+  const t = THEME_PALETTES[themeParam || "evoca1"] || THEME_PALETTES["evoca1"];
 
   const docSnap = await adminDb.collection("documents").doc(id).get();
   const docData = docSnap.data() || {};
@@ -19,6 +32,16 @@ export default async function AiReaderSummaryPage({
   const confidenceScore = metadata.confidenceScore || 95;
   const readTime = metadata.estimatedReadTimeMinutes || 10;
   const concepts = metadata.keyConcepts || [];
+ 
+  const renderFormattedText = (text: string) => {
+    const parts = text.split(/(\*\*[\s\S]*?\*\*)/g);
+    return parts.map((part: string, i: number) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-bold" style={{ color: t.primary, backgroundColor: t.light, paddingLeft: "4px", paddingRight: "4px", borderRadius: "4px" }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-stone-50/30">
@@ -36,12 +59,12 @@ export default async function AiReaderSummaryPage({
           {/* Header Area */}
           <div className="p-6 md:p-12 border-b border-stone-100 bg-white">
             <div className="space-y-4 max-w-3xl">
-              <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-purple-100 mb-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border mb-2" style={{ backgroundColor: t.light, color: t.primary, borderColor: t.border }}>
                 <Sparkles className="w-3 h-3" />
                 Ringkasan Materi
               </div>
               <h1 className="text-2xl md:text-4xl font-black text-stone-900 leading-tight font-poppins">
-                Jalur Penalaran: <span className="text-purple-600">{metadata.title || "Menguasai Materi"}</span>
+                Jalur Penalaran: <span style={{ color: t.primary }}>{metadata.title || "Menguasai Materi"}</span>
               </h1>
               <p className="text-stone-500 font-medium text-base md:text-lg leading-relaxed">
                 Eksplorasi poin-poin strategis untuk akselerasi pemahaman anda.
@@ -70,15 +93,6 @@ export default async function AiReaderSummaryPage({
               <div className="space-y-12">
                 {(() => {
                   const summary = metadata.summary || "";
-                  const renderFormattedText = (text: string) => {
-                    const parts = text.split(/(\*\*[\s\S]*?\*\*)/g);
-                    return parts.map((part: string, i: number) => {
-                      if (part.startsWith('**') && part.endsWith('**')) {
-                        return <strong key={i} className="font-bold text-stone-900 bg-indigo-50 px-1 rounded">{part.slice(2, -2)}</strong>;
-                      }
-                      return part;
-                    });
-                  };
 
                   const konteksMatch = summary.match(/KONTEKS:\s*([\s\S]*?)(?=INTI MATERI:|KESIMPULAN:|$)/i);
                   const intiMatch = summary.match(/INTI MATERI:\s*([\s\S]*?)(?=KESIMPULAN:|$)/i);
@@ -113,11 +127,8 @@ export default async function AiReaderSummaryPage({
                           </div>
                           
                           <div className={cn(
-                            "rounded-2xl p-6 md:p-8 space-y-6",
-                            section.theme === "blue" ? "bg-blue-50/30 border border-blue-100" :
-                            section.theme === "indigo" ? "bg-indigo-50/30 border border-indigo-100" :
-                            "bg-emerald-50/30 border border-emerald-100"
-                          )}>
+                            "rounded-2xl p-6 md:p-8 space-y-6 border",
+                          )} style={{ backgroundColor: t.lightBg, borderColor: t.border }}>
                             {section.content.split('\n').map((line: string, i: number) => {
                               const trimmed = line.trim();
                               if (!trimmed) return null;
@@ -125,12 +136,7 @@ export default async function AiReaderSummaryPage({
                               if (trimmed.startsWith('-')) {
                                 return (
                                   <div key={i} className="flex gap-4 group/item">
-                                    <div className={cn(
-                                      "w-1.5 h-1.5 rounded-full mt-2.5 shrink-0 transition-transform group-hover/item:scale-125",
-                                      section.theme === "blue" ? "bg-blue-400" :
-                                      section.theme === "indigo" ? "bg-indigo-400" :
-                                      "bg-emerald-400"
-                                    )} />
+                                    <div className="w-1.5 h-1.5 rounded-full mt-2.5 shrink-0 transition-transform group-hover/item:scale-125" style={{ backgroundColor: t.dot }} />
                                     <p className="text-stone-600 leading-relaxed text-[15px] md:text-lg font-medium">
                                       {renderFormattedText(trimmed.replace(/^-/, '').trim())}
                                     </p>
@@ -139,7 +145,7 @@ export default async function AiReaderSummaryPage({
                               }
 
                               return (
-                                <p key={i} className="text-stone-600 leading-relaxed text-[15px] md:text-lg font-medium pl-5 border-l-2 border-stone-200">
+                                <p key={i} className="text-stone-600 leading-relaxed text-[15px] md:text-lg font-medium pl-5" style={{ borderLeft: `2px solid ${t.border}` }}>
                                   {renderFormattedText(trimmed)}
                                 </p>
                               );
@@ -165,19 +171,19 @@ export default async function AiReaderSummaryPage({
                   {concepts.map((concept: string, idx: number) => {
                     const parts = concept.includes(':') ? concept.split(':') : [concept, ""];
                     return (
-                      <div key={idx} className="flex gap-4 md:gap-6 p-4 md:p-6 rounded-2xl border border-indigo-100/50 bg-indigo-50/20 md:border-stone-100 md:bg-transparent md:hover:border-indigo-100 md:hover:bg-indigo-50/20 transition-all group">
+                      <div key={idx} className="flex gap-4 md:gap-6 p-4 md:p-6 rounded-2xl border transition-all group" style={{ borderColor: t.border, backgroundColor: t.lightBg }}>
                         <div className="shrink-0">
-                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-indigo-600 text-white md:bg-stone-50 md:text-stone-400 flex items-center justify-center text-sm md:text-base font-black transition-colors md:group-hover:bg-indigo-600 md:group-hover:text-white">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl text-white flex items-center justify-center text-sm md:text-base font-black transition-colors" style={{ backgroundColor: t.primary }}>
                             {idx + 1}
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <h4 className="font-black text-indigo-600 md:text-stone-900 text-lg md:group-hover:text-indigo-600 transition-colors">
-                            {parts[0].replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim()}
+                          <h4 className="font-black text-lg transition-colors" style={{ color: t.primary }}>
+                            {renderFormattedText(parts[0].replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim())}
                           </h4>
                           {parts[1] && (
                             <p className="text-stone-500 text-sm md:text-base leading-relaxed font-medium">
-                              {parts.slice(1).join(':').trim()}
+                              {renderFormattedText(parts.slice(1).join(':').trim())}
                             </p>
                           )}
                         </div>

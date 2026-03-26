@@ -170,7 +170,7 @@ export default function AiReaderChatPage({
 
       // Smooth transition delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(`/dashboard?completed=true&questId=${id}`);
         router.refresh();
       }, 2500);
     } catch (error) {

@@ -13,10 +13,43 @@ import {
   Lightbulb,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/src/context/AuthContext";
 import { cn } from "@/src/lib/utils";
+import { Loader2 } from "lucide-react";
 
 export default function NewMissionPage() {
   const [activeTab, setActiveTab] = useState<"pdf" | "photo" | "search">("pdf");
+  const [topic, setTopic] = useState("");
+  const [searching, setSearching] = useState(false);
+  const { user, userStats } = useAuth();
+  const router = useRouter();
+
+  const handleSearch = async () => {
+    if (!topic.trim() || !user?.uid) return;
+    setSearching(true);
+    try {
+      const res = await fetch("/api/search-topic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, userId: user.uid }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Redirect to reader
+        const currentMateri = (userStats?.totalDocs || 0) + 1;
+        const currentTheme = `evoca${((currentMateri - 1) % 5) + 1}`;
+        router.push(`/ai-reader/${data.document.id}?theme=${currentTheme}&materi=${currentMateri}`);
+      } else {
+        alert(data.error || "Gagal mencari topik");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Terjadi kesalahan");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f7f7] pb-20">
@@ -187,20 +220,41 @@ export default function NewMissionPage() {
                         </div>
                         <input 
                            type="text"
+                           value={topic}
+                           onChange={(e) => setTopic(e.target.value)}
+                           onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                            placeholder="Cth: Hukum Newton 2, Cara Kerja Ginjal..."
-                           className="w-full pl-16 pr-32 py-5 text-lg font-bold text-stone-800 bg-white border-2 border-stone-200 rounded-3xl outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all shadow-sm placeholder:font-medium placeholder:text-stone-300"
+                           disabled={searching}
+                           className="w-full pl-16 pr-32 py-5 text-lg font-bold text-stone-800 bg-white border-2 border-stone-200 rounded-3xl outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all shadow-sm placeholder:font-medium placeholder:text-stone-300 disabled:opacity-50"
                         />
-                        <button className="absolute inset-y-2 right-2 px-6 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-sm transition-colors">
-                           Cari <ArrowRight className="w-4 h-4" />
+                        <button 
+                           onClick={handleSearch}
+                           disabled={searching}
+                           className="absolute inset-y-2 right-2 px-6 bg-pink-500 hover:bg-pink-600 disabled:bg-pink-400 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-sm transition-colors"
+                        >
+                           {searching ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                           ) : (
+                              <>Cari <ArrowRight className="w-4 h-4" /></>
+                           )}
                         </button>
                      </div>
 
                      <div className="w-full">
                         <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4 px-2 text-left">Topik Populer Hari Ini 🔥</p>
-                        <div className="flex flex-wrap gap-2">
-                           {["Sel dan Organel", "Revolusi Industri", "Logaritma", "Sistem Periodik Unsur", "Gerak Lurus Beraturan"].map((topic) => (
-                              <button key={topic} className="px-4 py-2.5 bg-stone-50 border border-stone-200 text-stone-600 text-sm font-bold rounded-2xl hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200 transition-colors">
-                                 {topic}
+                         <div className="flex flex-wrap gap-2">
+                           {["Sel dan Organel", "Revolusi Industri", "Logaritma", "Sistem Periodik Uusur", "Gerak Lurus Beraturan"].map((t) => (
+                              <button 
+                                 key={t} 
+                                 onClick={() => {
+                                    setTopic(t);
+                                    // Small delay to allow state update before search
+                                    setTimeout(handleSearch, 100);
+                                 }}
+                                 disabled={searching}
+                                 className="px-4 py-2.5 bg-stone-50 border border-stone-200 text-stone-600 text-sm font-bold rounded-2xl hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200 transition-colors disabled:opacity-50"
+                              >
+                                 {t}
                               </button>
                            ))}
                         </div>

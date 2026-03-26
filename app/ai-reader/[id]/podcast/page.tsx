@@ -15,11 +15,12 @@ import {
   Sparkles,
   ArrowLeft,
   Music,
-  Trophy
+  Zap
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/src/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils";
 import { use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,6 +65,18 @@ export default function AiReaderPodcastPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const themeParam = searchParams.get("theme") || "evoca1";
+
+  const THEME_PALETTES: Record<string, { primary: string; light: string; border: string; bgPage: string; glow: string }> = {
+    evoca1: { primary: "#8b5cf6", light: "#ede9fe", border: "#c4b5fd", bgPage: "#f5f3ff", glow: "rgba(139,92,246,0.3)" },
+    evoca2: { primary: "#6366f1", light: "#e0e7ff", border: "#a5b4fc", bgPage: "#eef2ff", glow: "rgba(99,102,241,0.3)" },
+    evoca3: { primary: "#3b82f6", light: "#dbeafe", border: "#93c5fd", bgPage: "#eff6ff", glow: "rgba(59,130,246,0.3)" },
+    evoca4: { primary: "#d946ef", light: "#fce7f3", border: "#f0abfc", bgPage: "#fdf4ff", glow: "rgba(217,70,239,0.3)" },
+    evoca5: { primary: "#0ea5e9", light: "#e0f2fe", border: "#7dd3fc", bgPage: "#f0f9ff", glow: "rgba(14,165,233,0.3)" },
+  };
+  const t = THEME_PALETTES[themeParam] || THEME_PALETTES["evoca1"];
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [script, setScript] = useState<ScriptLine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -259,9 +272,21 @@ export default function AiReaderPodcastPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center p-6">
-        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-        <h2 className="text-stone-900 font-bold text-xl font-poppins">Menyiapkan Podcast...</h2>
+      <div className="min-h-screen bg-[#f7f6ff] flex flex-col items-center justify-center text-center p-6 gap-6">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="w-32 h-32 rounded-full bg-stone-950 shadow-2xl ring-4 ring-purple-300 relative flex items-center justify-center"
+        >
+          <div className="absolute inset-0 rounded-full" style={{ background: 'repeating-conic-gradient(#1c1917 0deg, #292524 10deg, #1c1917 20deg)' }} />
+          <div className="w-12 h-12 rounded-full bg-purple-600 z-10 flex items-center justify-center">
+            <Music className="w-5 h-5 text-white" />
+          </div>
+        </motion.div>
+        <div>
+          <h2 className="text-stone-900 font-black text-xl uppercase tracking-tight">Menyiapkan Podcast...</h2>
+          <p className="text-stone-400 font-medium text-sm mt-1">Sedang menyusun skrip AI</p>
+        </div>
       </div>
     );
   }
@@ -281,14 +306,16 @@ export default function AiReaderPodcastPage({
        <audio ref={audioRef} crossOrigin="anonymous" hidden />
 
        {/* Ambient Bacgkround Blobs */}
-       <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-purple-200/30 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
-       <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-indigo-200/30 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
+       <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: t.glow }} />
+       <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" style={{ backgroundColor: t.glow }} />
+
 
        <div className="max-w-xl w-full relative z-10">
          <div className="mb-4">
             <Link
-               href={`/ai-reader/${id}`}
-               className="group inline-flex items-center gap-2 text-stone-500 hover:text-purple-600 font-black text-xs uppercase tracking-widest transition-all"
+               href={`/ai-reader/${id}?theme=${themeParam}`}
+               className="group inline-flex items-center gap-2 text-stone-500 font-black text-xs uppercase tracking-widest transition-all hover:opacity-80"
+               style={{ color: t.primary }}
              >
                <ArrowLeft className="w-4 h-4 stroke-[3px]" />
                Kembali
@@ -307,10 +334,10 @@ export default function AiReaderPodcastPage({
                      transition={isPlaying ? { duration: 10, repeat: Infinity, ease: "linear" } : { duration: 0.8 }}
                      className="w-36 h-36 sm:w-44 sm:h-44 rounded-full shadow-2xl relative z-10 overflow-hidden ring-4 ring-white/50"
                    >
-                     <div className="w-full h-full bg-stone-950 flex flex-col items-center justify-center relative">
+                     <div className="w-full h-full bg-stone-950 flex items-center justify-center relative">
                         <Image src="/vinyl_record.png" alt="Vinyl" fill className="object-cover opacity-80" />
-                        <div className="absolute inset-x-1/2 inset-y-1/2 -ml-6 -mt-6 sm:-ml-8 sm:-mt-8 w-12 h-12 sm:w-16 h-16 bg-purple-600 rounded-full z-20 flex items-center justify-center">
-                           <Music className="w-6 h-6 sm:w-8 h-8 text-white/90" />
+                        <div className="absolute w-14 h-14 sm:w-16 sm:h-16 rounded-full z-20 flex items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: t.primary }}>
+                           <Music className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
                         </div>
                      </div>
                    </motion.div>
@@ -319,8 +346,8 @@ export default function AiReaderPodcastPage({
                 {/* Info Text */}
                 <div className="text-center mb-6">
                    {isAlreadyFinishedPodcast && (
-                     <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3 border border-emerald-100">
-                        <Trophy className="w-3 h-3" /> Misi Selesai
+                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3 border border-emerald-100" style={{ backgroundColor: t.bgPage, color: t.primary, borderColor: t.border }}>
+                        <Zap className="w-3 h-3 fill-current" /> Misi Selesai
                      </div>
                    )}
                    <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 font-poppins tracking-tighter uppercase leading-none">
@@ -335,8 +362,8 @@ export default function AiReaderPodcastPage({
                    {/* Traditional Progress Bar restored below the waveform */}
                    <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3 border border-white">
                         <motion.div 
-                            className="h-full bg-purple-500" 
-                            style={{ width: `${((currentLineIndex + trackProgress) / Math.max(script.length, 1)) * 100}%` }}
+                            className="h-full" 
+                            style={{ backgroundColor: t.primary, width: `${((currentLineIndex + trackProgress) / Math.max(script.length, 1)) * 100}%` }}
                         />
                    </div>
 
@@ -357,7 +384,8 @@ export default function AiReaderPodcastPage({
 
                     <button
                         onClick={() => setIsPlaying(!isPlaying)}
-                        className="w-20 h-20 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all border-[8px] border-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple-500/50"
+                        className="w-20 h-20 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all border-[8px] border-white focus-visible:outline-none focus-visible:ring-4"
+                        style={{ backgroundColor: t.primary }}
                     >
                         {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current translate-x-1" />}
                     </button>
@@ -405,26 +433,53 @@ export default function AiReaderPodcastPage({
          </div>
        </div>
 
-       {/* Completion Popup */}
+       {/* Completion Popup - Full Screen Centered Modal with Theme */}
        <AnimatePresence>
          {showCompletionPopup && (
            <motion.div 
-             initial={{ scale: 0.9, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             className="fixed inset-x-4 bottom-10 z-50 flex justify-center"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+             style={{ backgroundColor: `${t.primary}25` }}
            >
-              <div className="bg-indigo-950 text-white rounded-[2rem] p-8 shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full text-center">
-                 <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-xl">
-                   <Trophy className="w-8 h-8 text-white" />
-                 </div>
+             <motion.div
+               initial={{ scale: 0.5, y: 60, opacity: 0 }}
+               animate={{ scale: 1, y: 0, opacity: 1 }}
+               exit={{ scale: 0.9, opacity: 0 }}
+               transition={{ type: "spring", stiffness: 300, damping: 22 }}
+               className="bg-white rounded-[2.5rem] p-10 shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full text-center relative overflow-hidden border-4"
+               style={{ borderColor: t.border }}
+             >
+               <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 opacity-20" style={{ backgroundColor: t.primary }} />
+               <div className="relative z-10 flex flex-col items-center gap-6">
+                 <motion.div
+                   animate={{ y: [0, -10, 0] }}
+                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                   className="w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-2xl border-b-8"
+                   style={{ backgroundColor: t.primary, borderColor: `${t.primary}90` }}
+                 >
+                   <Zap className="w-12 h-12 text-white fill-white" />
+                 </motion.div>
                  <div>
-                    <h3 className="text-xl font-black uppercase tracking-tight">Selesai!</h3>
-                    <p className="text-indigo-200 text-sm font-bold">+50 XP Berhasil Ditambahkan</p>
+                   <h3 className="text-3xl font-black uppercase tracking-tight text-stone-900">Podcast Selesai!</h3>
+                   <div className="flex items-center justify-center gap-2 mt-2" style={{ color: t.primary }}>
+                     <Zap className="w-4 h-4 fill-current" />
+                     <p className="text-sm font-black">+50 XP Berhasil Ditambahkan</p>
+                   </div>
                  </div>
-                 <button onClick={() => setShowCompletionPopup(false)} className="w-full h-14 bg-white text-indigo-950 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-50 transition-all">
-                    Oke, Mantap!
+                 <button 
+                   onClick={() => {
+                     setShowCompletionPopup(false);
+                     router.push(`/ai-reader/${id}?theme=${themeParam}`);
+                   }} 
+                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm text-white transition-all active:scale-95 border-b-4 shadow-lg"
+                   style={{ backgroundColor: t.primary, borderColor: `${t.primary}90` }}
+                 >
+                   Oke, Lanjutkan! →
                  </button>
-              </div>
+               </div>
+             </motion.div>
            </motion.div>
          )}
        </AnimatePresence>

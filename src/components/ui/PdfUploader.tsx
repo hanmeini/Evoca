@@ -14,7 +14,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function PdfUploader() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userStats } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -105,7 +105,9 @@ export function PdfUploader() {
 
       // Navigate to the mission outline page instead of jumping straight to summary
       setTimeout(() => {
-        router.push(`/ai-reader/${data.document.id}`);
+        const currentMateri = (userStats?.totalDocs || 0) + 1;
+        const currentTheme = `evoca${((currentMateri - 1) % 5) + 1}`;
+        router.push(`/ai-reader/${data.document.id}?theme=${currentTheme}&materi=${currentMateri}`);
       }, 1500); // short delay to show success icon
     } catch (err: unknown) {
       console.error(err);
