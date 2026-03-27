@@ -115,7 +115,7 @@ export default function LeaderboardPage() {
         <div className="flex items-end justify-center max-w-2xl mx-auto relative z-10 pt-4 mt-7 h-60 px-2">
           {/* Rank 2 - Left */}
           {topThree[0] && (
-            <div className="flex flex-col items-center flex-1 relative">
+            <div className="flex flex-col items-center flex-1 relative min-w-0">
               <div className="relative -mb-8 z-20">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-4 border-[#a78bfa] overflow-hidden relative shadow-lg shrink-0">
                   {topThree[0].photoURL ? (
@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
                   2
                 </div>
               </div>
-              <div className="w-full bg-[#a78bfa]/50 rounded-tl-[2rem] p-4 pt-10 text-center min-h-[120px] flex flex-col justify-center border-l border-t border-white/20">
+              <div className="w-full bg-[#a78bfa]/50 rounded-tl-[2rem] p-4 pt-10 text-center min-h-[120px] flex flex-col justify-center border-l border-t border-white/20 min-w-0">
                 <p className="text-white font-bold text-xs truncate mb-1 text-center w-full px-2">{topThree[0].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
@@ -142,7 +142,7 @@ export default function LeaderboardPage() {
 
           {/* Rank 1 - Center */}
           {topThree[1] && (
-            <div className="flex flex-col items-center flex-1 relative z-30">
+            <div className="flex flex-col items-center flex-1 relative z-30 min-w-0">
               <div className="relative -mb-10 z-20 -translate-y-4">
                 {/* White Radiance / Sunburst Effect - Centered on Avatar */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 pointer-events-none -z-10">
@@ -170,7 +170,7 @@ export default function LeaderboardPage() {
                   1
                 </div>
               </div>
-              <div className="w-full bg-[#c4b5fd] rounded-t-[2rem] p-4 pt-12 text-center min-h-[160px] flex flex-col justify-center shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-white/30 border-x border-t border-white/40 relative z-10 scale-105 origin-bottom">
+              <div className="w-full bg-[#c4b5fd] rounded-t-[2rem] p-4 pt-12 text-center min-h-[160px] flex flex-col justify-center shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-white/30 border-x border-t border-white/40 relative z-10 scale-105 origin-bottom min-w-0">
                 <p className="text-purple-950 font-black text-sm truncate mb-1 text-center w-full px-2">{topThree[1].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
@@ -182,7 +182,7 @@ export default function LeaderboardPage() {
 
           {/* Rank 3 - Right */}
           {topThree[2] && (
-            <div className="flex flex-col items-center flex-1 relative">
+            <div className="flex flex-col items-center flex-1 relative min-w-0">
               <div className="relative -mb-8 z-20">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-4 border-[#a78bfa] overflow-hidden relative shadow-lg shrink-0">
                   {topThree[2].photoURL ? (
@@ -197,7 +197,7 @@ export default function LeaderboardPage() {
                   3
                 </div>
               </div>
-              <div className="w-full bg-[#a78bfa]/50 rounded-tr-[2rem] p-4 pt-10 text-center min-h-[80px] flex flex-col justify-center border-r border-t border-white/20">
+              <div className="w-full bg-[#a78bfa]/50 rounded-tr-[2rem] p-4 pt-10 text-center min-h-[80px] flex flex-col justify-center border-r border-t border-white/20 min-w-0">
                 <p className="text-white font-bold text-xs truncate mb-1 text-center w-full px-2">{topThree[2].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
@@ -268,8 +268,8 @@ export default function LeaderboardPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-stone-800 text-base md:text-xl">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-stone-800 text-base md:text-xl truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">
                           {u.name} {u.isMe && <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full ml-2">YOU</span>}
                         </span>
                       </div>
@@ -326,8 +326,8 @@ export default function LeaderboardPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-extrabold text-stone-900 text-base md:text-xl">{currentUser.name || "Kamu"}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-extrabold text-stone-900 text-base md:text-xl truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{currentUser.name || "Kamu"}</span>
                     </div>
                   </div>
                 </div>

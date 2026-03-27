@@ -79,11 +79,20 @@ export function PdfUploader() {
         body: formData,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to process PDF");
+        const text = await response.text();
+        let errorMessage = "Failed to process PDF";
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If not JSON, use the raw text if short, or a generic message
+          errorMessage = text.length < 100 ? text : "Server error (504/500)";
+        }
+        throw new Error(errorMessage);
       }
+
+      const data = await response.json();
 
       setUploadComplete(true);
 

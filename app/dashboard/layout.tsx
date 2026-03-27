@@ -160,7 +160,7 @@ export default function DashboardLayout({
           {/* User Profile - Matching Nav Style */}
           <div className="cursor-default">
             {(() => {
-              const isActive = pathname === "/dashboard/profile";
+              const isActive = pathname === "/dashboard/settings";
               return (
                 <div
                   className={cn(

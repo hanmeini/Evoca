@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Trophy, Target } from "lucide-react";
+import { LayoutDashboard, Trophy, Target, PawPrint } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
@@ -47,8 +47,9 @@ export function MobileBottomNav() {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
-    { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
     { icon: Target, label: "Misi Harian", href: "/dashboard/missions", hasBadge: hasClaimableMissions },
+    { icon: Trophy, label: "Peringkat", href: "/dashboard/leaderboard" },
+    { icon: PawPrint, label: "Peliharaan", href: "/dashboard/pet" },
   ];
 
   return (
@@ -80,12 +81,12 @@ export function MobileBottomNav() {
           </Link>
         );
       })}
-      {/* Profile Link Mobile */}
-      <Link href="/dashboard/profile" className="group flex-1 mx-1 flex justify-center">
+      {/* Profile Tab Mobile (Non-navigational) */}
+      <div className="group flex-1 mx-1 flex justify-center">
         <div
           className={cn(
              "flex flex-col items-center justify-center w-full max-w-[80px] py-2 px-1 rounded-2xl transition-all group-active:scale-95 group-active:translate-y-1",
-             pathname === "/dashboard/profile"
+             pathname === "/dashboard/settings"
                 ? "bg-white border-2 border-[#8b5cf6] text-[#8b5cf6] shadow-[0_4px_0_0_#8b5cf6]"
                 : "text-stone-400 border-2 border-transparent hover:bg-white hover:border-stone-200 hover:text-stone-700 shadow-[0_4px_0_0_transparent] hover:shadow-[0_4px_0_0_#e5e7eb]"
           )}
@@ -93,7 +94,7 @@ export function MobileBottomNav() {
           <div className="flex flex-col items-center gap-1.5">
             <div className="relative w-5 h-5 sm:w-6 sm:h-6 shrink-0">
                {user?.photoURL ? (
-                 <div className={cn("w-full h-full rounded-md shadow-sm overflow-hidden relative border", pathname === "/dashboard/profile" ? "border-transparent" : "border-stone-200")}>
+                 <div className={cn("w-full h-full rounded-md shadow-sm overflow-hidden relative border", pathname === "/dashboard/settings" ? "border-transparent" : "border-stone-200")}>
                     <Image
                       src={user.photoURL}
                       alt="Profile"
@@ -102,7 +103,7 @@ export function MobileBottomNav() {
                     />
                  </div>
                ) : (
-                 <div className={cn("w-full h-full rounded-md flex items-center justify-center text-white font-black text-[8px] sm:text-[10px] shadow-sm", pathname === "/dashboard/profile" ? "bg-linear-to-tr from-[#8b5cf6] to-[#a78bfa]" : "bg-stone-300")}>
+                 <div className={cn("w-full h-full rounded-md flex items-center justify-center text-white font-black text-[8px] sm:text-[10px] shadow-sm", pathname === "/dashboard/settings" ? "bg-linear-to-tr from-[#8b5cf6] to-[#a78bfa]" : "bg-stone-300")}>
                     {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
                  </div>
                )}
@@ -112,7 +113,7 @@ export function MobileBottomNav() {
             </span>
           </div>
         </div>
-      </Link>
+      </div>
     </nav>
   );
 }

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Multimodal Analysis with Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Convert to base64 for Gemini multimodal input
     const base64Data = buffer.toString("base64");
