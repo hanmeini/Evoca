@@ -140,7 +140,13 @@ export default function DashboardOverviewPage() {
         // Play success sound
         const audio = new Audio('/sounds/SFX_SUCCESS.mp3');
         audio.volume = 0.5;
-        audio.play().catch(e => console.error("Audio block:", e));
+        audio.play().catch(e => {
+          // Silence errors related to missing files or browser restrictions
+          // "NotSupportedError" occurs when the source (e.g. 404 page) isn't a valid audio file
+          if (e.name !== 'NotSupportedError' && e.name !== 'NotAllowedError') {
+            console.error("Audio playback failed:", e);
+          }
+        });
 
         // Remove param directly via history API to avoid navigation
         const newUrl = window.location.pathname;
