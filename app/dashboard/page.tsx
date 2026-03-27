@@ -160,7 +160,8 @@ export default function DashboardOverviewPage() {
     const mInfo = MASCOTS.find(m => m.id === activeMascot) || MASCOTS[0];
     return {
       name: mInfo.name,
-      image: `/pet/${activeMascot}/${stage}.png`
+      image: `/pet/${activeMascot}/${stage}.png`,
+      video: undefined as string | undefined
     };
   }, [activeMascot, stage]);
 
@@ -312,7 +313,7 @@ export default function DashboardOverviewPage() {
     return (
       missions.find((m) => !m.completed) || missions.find((m) => !m.claimed)
     );
-  }, [userStats, todayStr]);
+  }, [userStats]);
 
   return (
     <>
