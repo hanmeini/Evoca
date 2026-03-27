@@ -29,15 +29,6 @@ export const MASCOTS: MascotInfo[] = [
     price: 600
   },
   {
-    id: "yeti",
-    name: "Yeti Legend",
-    description: "Legenda pegunungan yang sangat kuat.",
-    color: "text-slate-600",
-    bg: "bg-slate-50",
-    image: "/pet/yeti/image.png",
-    price: 1000
-  },
-  {
     id: "cendrawasih",
     name: "Cendrawasih",
     description: "Keindahan surga dari tanah Papua.",

@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No document ID provided" }, { status: 400 });
     }
 
-    let docData: any = null;
-    let docRef: any = null;
+    let docData: { quizData?: any, extractedText?: string, [key: string]: any } | null = null;
+    let docRef: any = null; // Reference type is complex from adminDb
     let finalDocId = documentId;
 
     if (isBoss && documentId.startsWith("boss-cluster-")) {
@@ -79,13 +79,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, quiz: docData.quizData }, { status: 200 });
     }
 
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     let prompt = "";
     if (isBoss) {
-      prompt = `Kamu adalah Prof. Yeti, penguji di aplikasi Evoca.
+      prompt = `Kamu adalah Prof. Harimau, penguji di aplikasi Evoca.
     Tugasmu adalah membuat UJIAN AKHIR (Boss Level) berupa 15 pertanyaan kuis pilihan ganda yang menguji ketajaman ingatan user dari seluruh materi yang dipelajari. Kualitas pertanyaan harus menantang dan mendalam.
     Buatlah pertanyaan yang bervariasi dari konsep dasar hingga aplikasi tingkat lanjut.
     

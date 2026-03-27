@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Sparkles, BookOpen, Trophy, Flame, Zap, Gift, ChevronLeft } from "lucide-react";
 import { UNITS } from "@/src/constants/units";
+import { MASCOTS } from "@/src/components/home/onboarding/constants";
 
 interface LeaderboardUser {
   uid: string;
@@ -99,16 +100,7 @@ export default function DashboardOverviewPage() {
   const [isReadyToAnimate, setIsReadyToAnimate] = useState(false);
   const [showClaimReward, setShowClaimReward] = useState<{show: boolean, amount: number}>({ show: false, amount: 0 });
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
-  const [userMascot, setUserMascot] = useState<string | null>(null);
   const router = useRouter();
-
-  // Load selected mascot from onboarding
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedMascot = localStorage.getItem("selectedMascot");
-      setUserMascot(savedMascot || "tiger"); // Default to tiger if not found
-    }
-  }, []);
 
   useEffect(() => {
     async function fetchLeaderboard() {
@@ -151,22 +143,18 @@ export default function DashboardOverviewPage() {
     return -1;
   }, [renderedNodes]);
 
-  const mascotAssets: Record<string, { image: string, video?: string, name: string }> = {
-    tiger: { 
-      image: "/pet/tiger/image.png", 
-      name: "Tiger Ninja" 
-    },
-    komodo: { 
-      image: "/pet/komodo/image.png", 
-      name: "Komodo Sage" 
-    },
-    rhino: { 
-      image: "/pet/rhino/image.png", 
-      name: "Rhino Tank" 
-    }
-  };
-
-  const currentMascot = userMascot ? mascotAssets[userMascot] : mascotAssets.yeti;
+  // Level-to-stage logic matching Pet Sanctuary
+  const activeMascot = userStats?.selectedMascot || "tiger";
+  const petLevel = userStats?.petLevels?.[activeMascot] || 1;
+  const stage = petLevel < 10 ? "young" : petLevel < 20 ? "teen" : "adult";
+  
+  const currentMascot = useMemo(() => {
+    const mInfo = MASCOTS.find(m => m.id === activeMascot) || MASCOTS[0];
+    return {
+      name: mInfo.name,
+      image: `/pet/${activeMascot}/${stage}.png`
+    };
+  }, [activeMascot, stage]);
 
   const triggerMotivation = () => {
     const name = user?.displayName
@@ -743,37 +731,6 @@ export default function DashboardOverviewPage() {
                 )}>
                   Streak {userStats.streak || 1} Hari
                 </p>
-
-                {/* Temporary Test Button as requested */}
-                <button
-                  onClick={async () => {
-                    console.log("[DEBUG] Cheat button clicked. UID:", user?.uid);
-                    if (user?.uid) {
-                      try {
-                        const nameParam = user.displayName ? `&displayName=${encodeURIComponent(user.displayName)}` : "";
-                        const photoParam = user.photoURL ? `&photoURL=${encodeURIComponent(user.photoURL)}` : "";
-                        const res = await fetch(`/api/test-xp?userId=${user.uid}&amount=500${nameParam}${photoParam}`);
-                        const data = await res.json();
-                        console.log("[DEBUG] API Response:", data);
-                        if (data.success) {
-                           alert(data.message);
-                           window.location.reload();
-                        } else {
-                           alert("Gagal: " + data.error);
-                        }
-                      } catch (err) {
-                        console.error("[DEBUG] Fetch error:", err);
-                        alert("Terjadi kesalahan koneksi.");
-                      }
-                    } else {
-                      alert("Error: User UID tidak ditemukan. Pastikan Anda sudah login.");
-                      console.log("[DEBUG] User object in AuthContext:", user);
-                    }
-                  }}
-                  className="mt-2 text-[8px] bg-rose-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-rose-700 transition-colors shadow-sm"
-                >
-                  Cheat: +500 XP
-                </button>
               </div>
 
               <div className="flex justify-between items-center gap-1.5 px-2">

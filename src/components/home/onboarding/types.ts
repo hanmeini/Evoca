@@ -1,4 +1,4 @@
-export type MascotType = "tiger" | "komodo" | "rhino" | "yeti" | "cendrawasih" | "orangutan" | "tarsius";
+export type MascotType = "tiger" | "komodo" | "rhino" | "cendrawasih" | "orangutan" | "tarsius";
 export type CommitmentLevel = "santai" | "serius" | "hardcore";
 
 export interface MascotInfo {

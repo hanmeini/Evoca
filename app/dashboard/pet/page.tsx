@@ -14,10 +14,9 @@ import {
   Lock,
   CheckCircle2,
   ShoppingBag,
-  Info,
   Book
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
@@ -50,22 +49,18 @@ const MascotRenderer = ({ mascotId, stage, isInteracting, interactionType }: {
   const [hasError, setHasError] = useState(false);
   const [retryWithJpg, setRetryWithJpg] = useState(false);
 
+  // Use a key to force component reset and avoid cascading renders
+  // when pet or stage changes.
   const pngPath = `/pet/${mascotId}/${stage}.png`;
   const jpgPath = `/pet/${mascotId}/${stage}.jpg`;
   const fallbackImage = `/pet/${mascotId}/image.png`;
-
-  // Reset error states when mascot or stage changes
-  useEffect(() => {
-    setHasError(false);
-    setRetryWithJpg(false);
-  }, [mascotId, stage]);
 
   const currentSrc = hasError ? fallbackImage : (retryWithJpg ? jpgPath : pngPath);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <img
-        key={currentSrc}
+        key={`${mascotId}-${stage}-${retryWithJpg}-${hasError}`}
         src={currentSrc}
         alt={`${mascotId} ${stage}`}
         onError={() => {
@@ -204,11 +199,17 @@ export default function PetPage() {
       petLevels: newPetLevels,
       selectedMascot: petId
     });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedMascot", petId);
+    }
   };
 
   const selectPet = async (petId: string) => {
     if (!ownedMascots.includes(petId)) return;
     await updateUserStats({ selectedMascot: petId });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedMascot", petId);
+    }
   };
 
   return (
@@ -238,7 +239,7 @@ export default function PetPage() {
         </div>
       </header>
 
-      {/* Guidebook Modal */}
+      {/* Premium Guidebook Modal */}
       <AnimatePresence>
         {showGuide && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -247,62 +248,74 @@ export default function PetPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowGuide(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs"
+              className="absolute inset-0 bg-[#8b5cf6]/20 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border-2 border-stone-200"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(139,92,246,0.3)] overflow-hidden border border-white/20"
             >
-              <div className="bg-[#1cb0f6] p-8 text-white relative">
-                <button 
-                  onClick={() => setShowGuide(false)}
-                  className="absolute top-6 right-6 p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4 rotate-90" />
-                </button>
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="p-3 bg-white/20 rounded-xl">
-                    <Info className="w-6 h-6" />
+              {/* Mascot Peeking Header */}
+              <div className="bg-linear-to-br from-[#8b5cf6] to-[#6d28d9] p-10 pb-12 text-white relative overflow-hidden">
+                {/* Decorative Pattern */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none">
+                   <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.4),transparent)]" />
+                   <Sparkles className="absolute top-10 right-10 w-24 h-24 rotate-12" />
+                </div>
+
+                <div className="flex items-center gap-6 relative z-10">
+                  <div className="p-4 bg-white/20 backdrop-blur-lg rounded-2xl border border-white/30 shadow-inner text-white">
+                    <Book className="w-8 h-8" />
                   </div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight">Panduan Pet</h2>
+                  <div className="flex-1">
+                    <h2 className="text-3xl font-black uppercase tracking-tight leading-none mb-2 text-white">Panduan Pet</h2>
+                    <p className="text-white/70 text-xs font-bold uppercase tracking-[0.2em]">Partner Belajar Terbaikmu</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowGuide(false)}
+                    className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all active:scale-90 text-white"
+                  >
+                    <ArrowLeft className="w-5 h-5 rotate-90" />
+                  </button>
                 </div>
               </div>
               
-              <div className="p-8 space-y-6">
-                <div className="flex gap-4 p-4 rounded-2xl border-2 border-stone-100">
-                  <div className="w-12 h-12 shrink-0 bg-[#58cc02] rounded-xl flex items-center justify-center text-white">
-                    <Trophy className="w-6 h-6" />
+              <div className="p-10 -mt-6 bg-white rounded-t-[2.5rem] relative z-20 space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="group flex gap-5 p-5 rounded-[2rem] border-2 border-stone-100 hover:border-[#8b5cf6]/30 hover:bg-violet-50/30 transition-all duration-300">
+                    <div className="w-14 h-14 shrink-0 bg-linear-to-br from-[#a78bfa] to-[#8b5cf6] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-violet-100 group-hover:rotate-6 transition-transform">
+                      <Trophy className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[13px] uppercase mb-1.5 text-stone-800 tracking-tight">Evolusi Belajar</h3>
+                      <p className="text-[11px] text-stone-500 font-bold leading-relaxed">
+                        Selesaikan misi harian di Roadmap. Pet akan tumbuh setiap naik 10 level dari XP yang kamu kumpulkan!
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-black text-sm uppercase mb-1">Evolusi Belajar</h3>
-                    <p className="text-xs text-stone-500 font-bold leading-relaxed">
-                      Selesaikan misi harian di Roadmap. Pet akan tumbuh setiap naik 10 level!
-                    </p>
+
+                  <div className="group flex gap-5 p-5 rounded-[2rem] border-2 border-stone-100 hover:border-[#8b5cf6]/30 hover:bg-violet-50/30 transition-all duration-300">
+                    <div className="w-14 h-14 shrink-0 bg-linear-to-br from-[#c084fc] to-[#a855f7] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-violet-100 group-hover:rotate-6 transition-transform">
+                      <Heart className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[13px] uppercase mb-1.5 text-stone-800 tracking-tight">Kasih Sayang</h3>
+                      <p className="text-[11px] text-stone-500 font-bold leading-relaxed">
+                        Beri makan dan ajak main agar Pet makin pintar. Pet yang disayang akan membantumu lebih fokus!
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-4 p-4 rounded-2xl border-2 border-stone-100">
-                  <div className="w-12 h-12 shrink-0 bg-[#ff4b4b] rounded-xl flex items-center justify-center text-white">
-                    <Heart className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm uppercase mb-1">Kasih Sayang</h3>
-                    <p className="text-xs text-stone-500 font-bold leading-relaxed">
-                      Klaim hadiah, beri makan, dan ajak main agar Pet makin pintar.
-                    </p>
-                  </div>
+                <div className="pt-4">
+                  <button 
+                    onClick={() => setShowGuide(false)}
+                    className="w-full py-5 bg-linear-to-br from-[#8b5cf6] to-[#7c3aed] border-b-4 border-[#6d28d9] text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest active:border-b-0 active:translate-y-1 transition-all shadow-xl shadow-indigo-100"
+                  >
+                    MENGERTI!
+                  </button>
                 </div>
-              </div>
-              
-              <div className="p-8 bg-stone-50 border-t-2 border-stone-100">
-                <button 
-                  onClick={() => setShowGuide(false)}
-                  className="w-full py-4 bg-[#58cc02] border-b-4 border-[#46a302] text-white rounded-2xl font-black text-sm uppercase tracking-widest active:border-b-0 active:translate-y-1 transition-all"
-                >
-                  MENGERTI!
-                </button>
               </div>
             </motion.div>
           </div>
@@ -537,7 +550,7 @@ export default function PetPage() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowGuide(true)}
-        className="fixed bottom-8 right-8 z-60 flex items-center gap-3 px-6 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl shadow-xl group hover:border-[#1cb0f6] hover:text-[#1cb0f6] transition-all"
+        className="fixed bottom-8 right-8 z-60 flex items-center gap-3 px-6 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl shadow-xl group hover:border-[#8b5cf6] hover:text-[#8b5cf6] transition-all"
       >
         <Book className="w-6 h-6" />
         <span className="font-black text-xs uppercase tracking-widest">Panduan</span>

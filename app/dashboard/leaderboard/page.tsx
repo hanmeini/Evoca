@@ -131,7 +131,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="w-full bg-[#a78bfa]/50 rounded-tl-[2rem] p-4 pt-10 text-center min-h-[120px] flex flex-col justify-center border-l border-t border-white/20">
-                <p className="text-white font-bold text-xs truncate mb-1 text-center">{topThree[0].name}</p>
+                <p className="text-white font-bold text-xs truncate mb-1 text-center max-w-[80px] sm:max-w-[120px]">{topThree[0].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
                   <span className="text-white font-black text-sm">{topThree[0].score}</span>
@@ -171,7 +171,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="w-full bg-[#c4b5fd] rounded-t-[2rem] p-4 pt-12 text-center min-h-[160px] flex flex-col justify-center shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-white/30 border-x border-t border-white/40 relative z-10 scale-105 origin-bottom">
-                <p className="text-purple-950 font-black text-sm truncate mb-1 text-center">{topThree[1].name}</p>
+                <p className="text-purple-950 font-black text-sm truncate mb-1 text-center max-w-[100px] sm:max-w-[150px]">{topThree[1].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
                   <span className="text-purple-900 font-black text-lg">{topThree[1].score}</span>
@@ -198,7 +198,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="w-full bg-[#a78bfa]/50 rounded-tr-[2rem] p-4 pt-10 text-center min-h-[80px] flex flex-col justify-center border-r border-t border-white/20">
-                <p className="text-white font-bold text-xs truncate mb-1 text-center">{topThree[2].name}</p>
+                <p className="text-white font-bold text-xs truncate mb-1 text-center max-w-[80px] sm:max-w-[120px]">{topThree[2].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
                   <span className="text-white font-black text-sm">{topThree[2].score}</span>
@@ -232,9 +232,9 @@ export default function LeaderboardPage() {
                     u.isMe && "bg-orange-50 border border-orange-200 shadow-sm"
                   )}
                 >
-                  <div className="flex items-center gap-4 md:gap-8">
+                  <div className="flex items-center gap-2 md:gap-4">
                     {/* Rank Indicator */}
-                    <div className="flex items-center gap-1.5 min-w-[65px]">
+                    <div className="flex items-center gap-1.5 min-w-[35px] sm:min-w-[45px]">
                       <span className="font-black text-stone-900 text-lg md:text-xl tabular-nums">{u.rank}</span>
                       <AnimatePresence>
                         {u.status !== "stable" && (
@@ -258,7 +258,7 @@ export default function LeaderboardPage() {
                     </div>
 
                     {/* User Info */}
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-stone-100 overflow-hidden relative shadow-sm shrink-0">
                         {u.photoURL ? (
                           <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
@@ -289,9 +289,9 @@ export default function LeaderboardPage() {
             {/* 3. Sticky User Bar - Moved inside Leaderboard List */}
             <div className="sticky bottom-0 left-0 w-full pt-10 px-0 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
               <div className="bg-[#ffaa00] text-purple-950 rounded-2xl p-2 flex items-center justify-between shadow-2xl relative border border-[#e69900]">
-                <div className="flex items-center gap-4 md:gap-8">
+                <div className="flex items-center gap-2 md:gap-4">
                   {/* My Rank */}
-                  <div className="flex items-center gap-2 min-w-[70px] relative px-2">
+                  <div className="flex items-center gap-2 min-w-[40px] sm:min-w-[50px] relative px-2">
                     <span className="font-black text-stone-900 text-lg md:text-xl tabular-nums">
                       {currentUser.rank || "99+"}
                     </span>
@@ -316,7 +316,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* My User Info */}
-                  <div className="flex items-center gap-5">
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-white/50 overflow-hidden relative shadow-md shrink-0">
                       {currentUser.photoURL ? (
                         <img src={currentUser.photoURL} alt={currentUser.name} className="w-full h-full object-cover" />
