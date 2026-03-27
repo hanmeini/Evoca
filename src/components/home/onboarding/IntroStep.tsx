@@ -84,6 +84,7 @@ export const IntroStep = ({ step }: IntroStepProps) => {
               src={content.image}
               alt="Mascot"
               fill
+              unoptimized
               className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-none"
               priority
               draggable={false}

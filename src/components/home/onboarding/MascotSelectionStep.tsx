@@ -60,6 +60,7 @@ export const MascotSelectionStep = ({
                   src={m.image}
                   alt={m.name}
                   fill
+                  unoptimized
                   className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
                   draggable={false}
                 />
@@ -105,6 +106,7 @@ export const MascotSelectionStep = ({
                       src={m.image}
                       alt={m.name}
                       fill
+                      unoptimized
                       className="object-contain p-4"
                       draggable={false}
                     />
