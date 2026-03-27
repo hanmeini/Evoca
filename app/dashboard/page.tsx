@@ -94,7 +94,15 @@ export default function DashboardOverviewPage() {
   const [loading, setLoading] = useState(true);
   const {
     user,
-    userStats = { streak: 1, totalXP: 0, gems: 500, completedMissions: [] },
+    userStats = { 
+      streak: 1, 
+      totalXP: 0, 
+      gems: 500, 
+      completedMissions: [],
+      ownedMascots: ["tiger"],
+      petLevels: { "tiger": 1 },
+      selectedMascot: "tiger"
+    },
   } = useAuth();
   const [mascotQuote, setMascotQuote] = useState("Halo!");
   const [isReadyToAnimate, setIsReadyToAnimate] = useState(false);
