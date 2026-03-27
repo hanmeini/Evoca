@@ -55,22 +55,22 @@ export const IntroStep = ({ step }: IntroStepProps) => {
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center h-full w-full max-w-4xl mx-auto px-4"
     >
-      <div className="w-full text-left max-w-md md:max-w-2xl mx-auto mb-8">
+      <div className="w-full text-left max-w-md md:max-w-2xl mx-auto mb-8 mt-12 md:mt-20">
         <span className="text-white/60 uppercase tracking-[0.2em] text-xs md:text-sm mb-2 block">
           {content.tag}
         </span>
         <h1
           style={STROKE_STYLE}
-          className="text-4xl md:text-6xl font-black text-transparent leading-tight mb-4 whitespace-pre-line"
+          className="text-4xl md:text-5xl font-black text-transparent leading-tight mb-4 whitespace-pre-line"
         >
           {content.title}
         </h1>
-        <p className="text-white/90 text-lg md:text-xl leading-relaxed">
+        <p className="text-white/90 text-lg md:text-lg leading-relaxed">
           {content.desc}
         </p>
       </div>
 
-      <div className="relative flex items-center justify-center w-full min-h-[250px] md:min-h-[400px]">
+      <div className="relative flex items-center justify-center w-full min-h-[200px] md:min-h-[350px]">
         {content.image ? (
           <motion.div
             whileHover={{ scale: 1.05, rotate: 2 }}
@@ -78,7 +78,7 @@ export const IntroStep = ({ step }: IntroStepProps) => {
             transition={{
               y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
             }}
-            className="relative w-88 md:w-lg aspect-square flex items-center justify-center cursor-pointer group select-none"
+            className="relative w-64 md:w-96 aspect-square flex items-center justify-center cursor-pointer group select-none"
           >
             <Image
               src={content.image}

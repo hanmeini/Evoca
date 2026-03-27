@@ -5,19 +5,26 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, googleProvider, db } from "../lib/firebase";
 import { useRouter } from "next/navigation";
+import { MascotType } from "../components/home/onboarding/types";
 
 interface UserStats {
   gems: number;
+  totalGemsEarned?: number;
   totalXP: number;
   streak: number;
   completedMissions: string[];
   totalDocs?: number;
   completedMissionsCount?: number;
+  ownedMascots: string[];
+  petLevels: { [mascotId: string]: number };
+  selectedMascot: string;
+  claimedDailyXP?: { [date: string]: boolean };
   dailyProgress?: {
     [date: string]: {
       messagesSent?: number;
@@ -26,6 +33,9 @@ interface UserStats {
       podcastsFinished?: number;
     };
   };
+  petFood?: number;
+  petPlay?: number;
+  petXP?: { [mascotId: string]: number };
 }
 
 interface AuthContextType {
@@ -35,15 +45,31 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
   refreshStats: () => Promise<void>;
+  updateUserStats: (updates: Partial<UserStats>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  userStats: { gems: 500, totalXP: 0, streak: 1, completedMissions: [], totalDocs: 0, completedMissionsCount: 0 },
+  userStats: { 
+    gems: 500, 
+    totalGemsEarned: 500,
+    totalXP: 0, 
+    streak: 1, 
+    completedMissions: [],
+    totalDocs: 0, 
+    completedMissionsCount: 0,
+    ownedMascots: ["tiger"],
+    petLevels: { "tiger": 1 },
+    selectedMascot: "tiger",
+    petFood: 0,
+    petPlay: 0,
+    petXP: { "tiger": 0 }
+  },
   signInWithGoogle: async () => {},
   logOut: async () => {},
   refreshStats: async () => {},
+  updateUserStats: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -51,15 +77,45 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userStats, setUserStats] = useState<UserStats>({
-    gems: 500,
-    totalXP: 0,
-    streak: 1,
-    completedMissions: [],
-    totalDocs: 0,
-    completedMissionsCount: 0,
+  const [userStats, setUserStats] = useState<UserStats>(() => {
+    let initialMascot: any = "tiger";
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedMascot');
+      if (saved) initialMascot = saved;
+    }
+    return {
+      gems: 500,
+      totalXP: 0,
+      streak: 1,
+      completedMissions: [],
+      totalDocs: 0,
+      completedMissionsCount: 0,
+      ownedMascots: [initialMascot],
+      petLevels: { [initialMascot]: 1 },
+      selectedMascot: initialMascot,
+      petFood: 0,
+      petPlay: 0,
+      petXP: { [initialMascot]: 0 }
+    };
   });
   const router = useRouter();
+
+  const updateUserStats = async (updates: Partial<UserStats>) => {
+    if (!user) return;
+    try {
+      // Optimistic update
+      setUserStats(prev => ({ ...prev, ...updates }));
+
+      await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid, updates }),
+      });
+    } catch (e) {
+      console.error("Failed to update user stats:", e);
+      refreshStats(); // Revert on failure
+    }
+  };
 
   const refreshStats = async () => {
     if (!user) return;
@@ -69,15 +125,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.data) {
         setUserStats({
           gems: typeof data.data.gems === "number" ? data.data.gems : 500,
-          totalXP:
-            typeof data.data.totalXP === "number" ? data.data.totalXP : 0,
+          totalGemsEarned: typeof data.data.totalGemsEarned === "number" ? data.data.totalGemsEarned : (typeof data.data.gems === "number" ? data.data.gems : 500),
+          totalXP: typeof data.data.totalXP === "number" ? data.data.totalXP : 0,
           streak: typeof data.data.streak === "number" ? data.data.streak : 1,
           completedMissions: Array.isArray(data.data.completedMissions)
             ? data.data.completedMissions
             : [],
           totalDocs: typeof data.data.totalDocs === "number" ? data.data.totalDocs : 0,
           completedMissionsCount: typeof data.data.completedMissionsCount === "number" ? data.data.completedMissionsCount : 0,
+          ownedMascots: Array.isArray(data.data.ownedMascots) ? data.data.ownedMascots : ["tiger"],
+          petLevels: data.data.petLevels || { "tiger": 1 },
+          selectedMascot: data.data.selectedMascot || "tiger",
           dailyProgress: data.data.dailyProgress || {},
+          petFood: data.data.petFood || 0,
+          petPlay: data.data.petPlay || 0,
+          petXP: data.data.petXP || { "tiger": 0 },
         });
       }
     } catch (e) {
@@ -106,7 +168,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ) {
           return prev;
         }
-        return { gems: 500, totalXP: 0, streak: 1, completedMissions: [] };
+        return { 
+          gems: 500, 
+          totalGemsEarned: prev.totalGemsEarned ?? 500,
+          totalXP: 0, 
+          streak: 1, 
+          completedMissions: [],
+          totalDocs: 0,
+          completedMissionsCount: 0,
+          ownedMascots: ["tiger"],
+          petLevels: { "tiger": 1 },
+          selectedMascot: "tiger"
+        };
       });
       return;
     }
@@ -119,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = snapshot.data();
           setUserStats({
             gems: typeof data.gems === "number" ? data.gems : 500,
+            totalGemsEarned: typeof data.totalGemsEarned === "number" ? data.totalGemsEarned : (typeof data.gems === "number" ? data.gems : 500),
             totalXP: typeof data.totalXP === "number" ? data.totalXP : 0,
             streak: typeof data.streak === "number" ? data.streak : 1,
             completedMissions: Array.isArray(data.completedMissions)
@@ -126,7 +200,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               : [],
             totalDocs: typeof data.totalDocs === "number" ? data.totalDocs : 0,
             completedMissionsCount: typeof data.completedMissionsCount === "number" ? data.completedMissionsCount : 0,
+            ownedMascots: Array.isArray(data.ownedMascots) ? data.ownedMascots : [
+              (typeof window !== 'undefined' ? localStorage.getItem('selectedMascot') : 'tiger') || 'tiger'
+            ],
+            petLevels: data.petLevels || { "tiger": 1 },
+            selectedMascot: data.selectedMascot || "tiger",
             dailyProgress: data.dailyProgress || {},
+            petFood: data.petFood || 0,
+            petPlay: data.petPlay || 0,
+            petXP: data.petXP || { [data.selectedMascot || "tiger"]: 0 },
           });
         }
       },
@@ -142,9 +224,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeStats();
   }, [user]);
 
-  // Sync streak on login/load
+  // Sync streak on login/load & persist mascot choice for new accounts
   useEffect(() => {
     if (user) {
+      // Sync streak
       fetch("/api/streak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,16 +237,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           photoURL: user.photoURL
         }),
       }).catch((err) => console.warn("Streak check failed:", err));
+
+      // Persist onboarding mascot to account if it's the first time
+      const savedMascot = typeof window !== 'undefined' ? localStorage.getItem('selectedMascot') : null;
+      if (savedMascot && 
+          userStats.totalXP === 0 && 
+          userStats.ownedMascots.length <= 1 && 
+          userStats.selectedMascot !== savedMascot) {
+        // Only update if the selection actually needs to change
+        updateUserStats({
+          selectedMascot: savedMascot as MascotType,
+          ownedMascots: [savedMascot],
+          petLevels: { [savedMascot]: 1 }
+        });
+      }
     }
-  }, [user?.uid, user?.displayName, user?.photoURL]);
+  }, [user, userStats.ownedMascots, userStats.totalXP, userStats.selectedMascot]);
 
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
       router.push("/dashboard");
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
-      throw error;
+    } catch (error: any) {
+      if (error.code === "auth/popup-blocked") {
+        console.warn("Popup blocked, falling back to redirect...");
+        await signInWithRedirect(auth, googleProvider);
+      } else if (error.code === "auth/cancelled-popup-request") {
+        console.log("Previous popup request cancelled.");
+      } else if (error.code === "auth/popup-closed-by-user") {
+        console.log("Popup closed by user.");
+      } else {
+        console.error("Error signing in with Google:", error);
+        throw error;
+      }
     }
   };
 
@@ -185,6 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         logOut,
         refreshStats,
+        updateUserStats,
       }}
     >
       {children}

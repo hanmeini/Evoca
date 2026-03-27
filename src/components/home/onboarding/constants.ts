@@ -7,7 +7,8 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Pemberani yang fokus dan tajam.",
     color: "text-orange-600",
     bg: "bg-orange-50",
-    image: "/pet/tiger/image.png"
+    image: "/pet/tiger/image.png",
+    price: 0
   },
   {
     id: "komodo",
@@ -15,7 +16,8 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Pintar yang strategis dan tenang.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
-    image: "/pet/komodo/image.png"
+    image: "/pet/komodo/image.png",
+    price: 300
   },
   {
     id: "rhino",
@@ -23,12 +25,40 @@ export const MASCOTS: MascotInfo[] = [
     description: "Si Tangguh yang konsisten dan kuat.",
     color: "text-blue-600",
     bg: "bg-blue-50",
-    image: "/pet/rhino/image.png"
+    image: "/pet/rhino/image.png",
+    price: 300
+  },
+  {
+    id: "cendrawasih",
+    name: "Cendrawasih",
+    description: "Si Cantik yang kreatif dan dinamis.",
+    color: "text-yellow-600",
+    bg: "bg-yellow-50",
+    image: "/pet/cendrawasih/image.png",
+    price: 1500
+  },
+  {
+    id: "orangutan",
+    name: "Orangutan",
+    description: "Si Bijak yang berwawasan luas.",
+    color: "text-orange-700",
+    bg: "bg-orange-50",
+    image: "/pet/orangutan/image.png",
+    price: 2000
+  },
+  {
+    id: "tarsius",
+    name: "Tarsius",
+    description: "Si Kecil yang lincah dan waspada.",
+    color: "text-stone-600",
+    bg: "bg-stone-50",
+    image: "/pet/tarsius/image.png",
+    price: 2500
   },
 ];
 
 export const STROKE_STYLE = {
-  WebkitTextStroke: "2px white",
+  WebkitTextStroke: "1px white",
   textShadow: "0 2px 4px rgba(0,0,0,0.1)",
 };
 

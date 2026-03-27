@@ -8,6 +8,8 @@ import {
   Loader2,
   Sparkles,
   ChevronLeft,
+  Trophy,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils";
@@ -73,7 +75,7 @@ export default function AiReaderQuizPage({
           if (docData.success && docData.data?.completedStages?.includes("quiz")) {
             setIsFinished(true);
             setIsAlreadyFinishedQuiz(true);
-            setScore(data.quiz.length); 
+            setScore(docData.data.quizScore || 0); 
           }
         } else {
           setError("No questions generated.");
@@ -108,9 +110,8 @@ export default function AiReaderQuizPage({
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
-      // Calculate final score correctly, accounting for the last question
-      const finalScore = lastAnswerCorrect !== undefined ? (lastAnswerCorrect ? score + 1 : score) : score;
-      setScore(finalScore);
+      // Use the score state which has been updated in handleSelect
+      const finalScore = score;
       setIsFinished(true);
       if (user) {
         try {
@@ -177,68 +178,86 @@ export default function AiReaderQuizPage({
   }
 
   if (isFinished) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-4">
-        <div className="w-full max-w-xl border-4 border-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden bg-[#FEF3C7]">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-300 rounded-full blur-3xl opacity-50"></div>
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-300 rounded-full blur-3xl opacity-50"></div>
+    const activeMascot = user?.uid ? (localStorage.getItem('selectedMascot') || 'tiger') : 'tiger';
+    const mascotImage = `/pet/${activeMascot}/young.png`;
 
-          <div className="relative z-10">
-            <div className="inline-flex justify-center flex-col items-center w-32 h-32 rounded-full border-4 border-white mb-8 shadow-xl animate-bounce-slow bg-amber-400 text-amber-950">
-              <Sparkles className="w-8 h-8 mb-1" />
-              <span className="font-serif text-4xl font-black leading-none">
-                {score}/{quizData.length}
-              </span>
-            </div>
-            <h2 className="font-serif text-3xl md:text-4xl font-black mb-4 text-amber-950">
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-linear-to-b from-[#FFFBEB] to-white">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-2xl bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_32px_64px_-16px_rgba(251,191,36,0.2)] border-2 border-amber-100 flex flex-col items-center text-center relative overflow-hidden"
+        >
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-amber-400 via-yellow-300 to-amber-400" />
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-50 rounded-full blur-3xl opacity-60" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-yellow-50 rounded-full blur-3xl opacity-60" />
+
+          {/* Mascot Success Image */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-40 h-40 md:w-56 md:h-56 relative mb-8"
+          >
+            <img 
+              src={mascotImage} 
+              alt="Mascot Congrats" 
+              className="w-full h-full object-contain animate-bounce-slow"
+              onError={(e) => { (e.target as HTMLImageElement).src = '/favicon.ico' }}
+            />
+            {/* Celebration Sparkles */}
+            <div className="absolute -top-4 -right-4 text-4xl animate-pulse">✨</div>
+            <div className="absolute -bottom-4 -left-4 text-4xl animate-pulse [animation-delay:0.5s]">🌟</div>
+          </motion.div>
+
+          <header className="mb-10 relative z-10">
+            <h2 className="text-4xl md:text-5xl font-black text-amber-950 uppercase tracking-tight mb-3">
               Kuis Selesai!
             </h2>
-            <p className="font-bold mb-6 max-w-sm mx-auto text-lg leading-relaxed text-amber-800/80">
-              Luar biasa! Anda telah menyelesaikan kuis ini.
+            <p className="text-amber-800/60 font-bold text-lg max-w-sm mx-auto">
+              Luar biasa! Pengetahuanmu tentang materi ini meningkat pesat.
             </p>
+          </header>
 
-            {/* Gamification Success Badge */}
-            <div className="flex justify-center mb-10">
-              <div className={cn(
-                "text-white px-5 py-2.5 rounded-2xl shadow-lg border-b-4 flex items-center gap-3 transform scale-110",
-                isAlreadyFinishedQuiz 
-                  ? "bg-stone-500 border-stone-600 opacity-80" 
-                  : "bg-[#ffc800] border-[#e5a500]"
-              )}>
-                <span className="text-xl">{isAlreadyFinishedQuiz ? "✅" : "🎉"}</span>
-                <div className="flex flex-col items-start leading-none">
-                  <p className="font-black uppercase tracking-widest text-[11px] text-white/90 border-b border-black/10 pb-1 mb-1 shadow-sm font-sans w-full text-left">
-                    {isAlreadyFinishedQuiz ? "Sudah Selesai" : "Misi Selesai!"}
-                  </p>
-                  <p className="font-bold text-[10px] text-white font-sans">
-                    {isAlreadyFinishedQuiz ? "Tinjauan Selesai" : `+${score * 20} XP Diraih`}
-                  </p>
-                </div>
+          <div className="grid grid-cols-2 gap-6 w-full max-w-md mb-12">
+            <div className="bg-amber-50/50 rounded-3xl p-6 border-2 border-amber-100/50 shadow-inner">
+              <p className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-2">Skor Kuis</p>
+              <div className="flex items-center justify-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span className="text-3xl font-black text-amber-950">{score}/{quizData.length}</span>
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button
-                onClick={() => {
-                  setCurrentQuestion(0);
-                  setSelectedOption(null);
-                  setIsAnswered(false);
-                  setScore(0);
-                  setIsFinished(false);
-                }}
-                className="inline-flex h-14 items-center justify-center rounded-full bg-stone-100 px-8 text-lg font-bold text-stone-900 shadow-sm transition-transform hover:-translate-y-1"
-              >
-                Coba Lagi
-              </button>
-              <Link
-                href={`/dashboard`}
-                className="inline-flex h-14 items-center justify-center rounded-full bg-[#58cc02] px-10 py-2 text-lg font-bold text-white shadow-xl transition-transform hover:-translate-y-1 border-b-8 border-[#46a302] active:border-b-0 active:translate-y-2 uppercase tracking-widest"
-              >
-                Lanjut ke Peta ✨
-              </Link>
+            <div className="bg-indigo-50/50 rounded-3xl p-6 border-2 border-indigo-100/50 shadow-inner">
+               <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2">XP Didapat</p>
+               <div className="flex items-center justify-center gap-2">
+                <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
+                <span className="text-3xl font-black text-indigo-950">+{score * 20}</span>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-md">
+            <button
+              onClick={() => {
+                setCurrentQuestion(0);
+                setSelectedOption(null);
+                setIsAnswered(false);
+                setScore(0);
+                setIsFinished(false);
+              }}
+              className="w-full sm:flex-1 h-16 bg-stone-100 border-b-4 border-stone-200 text-stone-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-stone-200 transition-all active:border-b-0 active:translate-y-1"
+            >
+              Coba Lagi
+            </button>
+            <Link
+              href={`/dashboard/missions?completed=true&id=${id}`}
+              className="w-full sm:flex-1 h-16 bg-[#58cc02] border-b-4 border-[#46a302] text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-green-100 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:border-b-0 active:translate-y-1"
+            >
+              BERIKUTNYA <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
       </div>
     );
   }

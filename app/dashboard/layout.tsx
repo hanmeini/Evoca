@@ -158,22 +158,16 @@ export default function DashboardLayout({
         {/* Footer Section: Profile & Logout */}
         <div className="mt-auto px-6 pb-6 space-y-4">
           {/* User Profile - Matching Nav Style */}
-          <Link href="/dashboard/profile">
+          <div className="cursor-default">
             {(() => {
               const isActive = pathname === "/dashboard/profile";
               return (
-                <motion.div
-                  whileHover={{ x: 6, scale: 1.02 }}
-                  whileTap={{
-                    scale: 0.95,
-                    y: 4,
-                    boxShadow: "0 0 0 0 rgba(0,0,0,0)",
-                  }}
+                <div
                   className={cn(
                     "flex items-center justify-between px-5 py-3 rounded-3xl font-black text-xs uppercase tracking-widest transition-all group",
                     isActive
                       ? "bg-white border-2 border-[#8b5cf6] text-[#8b5cf6] shadow-[0_4px_0_0_#8b5cf6]"
-                      : "text-stone-400 hover:bg-white hover:border-2 hover:border-stone-200 hover:text-stone-700 shadow-[0_4px_0_0_#e5e7eb]",
+                      : "text-stone-400 bg-white border-2 border-stone-100 shadow-[0_2px_0_0_#e5e7eb]",
                   )}
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -201,10 +195,10 @@ export default function DashboardLayout({
                   {isActive && (
                     <div className="w-2 h-2 bg-[#8b5cf6] rounded-full shadow-[0_0_8px_rgba(139,92,246,0.6)] shrink-0" />
                   )}
-                </motion.div>
+                </div>
               );
             })()}
-          </Link>
+          </div>
 
           {/* Logout Section */}
           <div className="border-t font-sans border-stone-100 pt-4">

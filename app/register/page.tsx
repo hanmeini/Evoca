@@ -49,7 +49,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <BackgroundMesh variant="rose" />
+      <BackgroundMesh variant="indigo" />
       <FloatingOrnaments step={3} />
 
       {/* Back to Home CTA */}
@@ -102,7 +102,16 @@ export default function RegisterPage() {
         </div>
 
         {/* Form Side */}
-        <div className="w-full max-w-[450px] bg-white rounded-4xl p-8 shadow-2xl border border-stone-100">
+        <div className="w-full max-w-[450px] bg-white rounded-4xl p-8 shadow-2xl border border-stone-100 relative">
+          {/* Mobile Mascot Header */}
+          <div className="lg:hidden absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 z-20 pointer-events-none drop-shadow-xl">
+            <Image
+              src={currentMascot.image}
+              alt="Mascot"
+              fill
+              className="object-contain"
+            />
+          </div>
           <div className="text-center mb-8">
             <Link
               href="/"

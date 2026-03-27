@@ -14,10 +14,16 @@ export async function GET(req: NextRequest) {
     const userSnap = await userRef.get();
     
     if (!userSnap.exists) {
-      // Return default data if user doesn't exist in DB yet
       return NextResponse.json({ 
         success: true, 
-        data: { totalXP: 0, streak: 1, gems: 500 } 
+        data: { 
+          totalXP: 0, 
+          streak: 1, 
+          gems: 500,
+          ownedMascots: ["tiger"],
+          petLevels: { "tiger": 1 },
+          selectedMascot: "tiger"
+        } 
       }, { status: 200 });
     }
 
@@ -25,7 +31,24 @@ export async function GET(req: NextRequest) {
 
   } catch (error: unknown) {
     console.error("Error fetching user data:", error);
-    const message = error instanceof Error ? error.message : "Internal Server Error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { userId, updates } = await req.json();
+
+    if (!userId || !updates) {
+      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
+
+    const userRef = adminDb.collection("users").doc(userId);
+    await userRef.set(updates, { merge: true });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: unknown) {
+    console.error("Error updating user data:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

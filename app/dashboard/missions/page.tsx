@@ -8,6 +8,7 @@ import {
   CheckCircle2, 
   Star, 
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   Zap,
   BookOpen,
@@ -15,13 +16,17 @@ import {
   Trophy,
   Timer,
   LucideIcon,
-  Bell
+  Bell,
+  Utensils,
+  Gamepad2
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/src/context/AuthContext";
 import { cn, getTodayStr } from "@/src/lib/utils";
 import { CountingNumber } from "@/src/components/ui/CountingNumber";
+import Lottie from "lottie-react";
+import missionCompletedAnim from "@/public/animation/mission-completed.json";
 
 interface MissionTemplate {
   id: string;
@@ -29,6 +34,8 @@ interface MissionTemplate {
   description: string;
   icon: LucideIcon;
   reward: number; // Gems
+  foodReward?: number;
+  playReward?: number;
   goal: number;
   current: number;
   category: "daily" | "achievement";
@@ -37,7 +44,12 @@ interface MissionTemplate {
 export default function MissionsPage() {
   const { user, userStats, refreshStats } = useAuth();
   const [claimingId, setClaimingId] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState<{show: boolean, gems: number}>({ show: false, gems: 0 });
+  const [showSuccess, setShowSuccess] = useState<{show: boolean, gems: number, food: number, play: number}>({ 
+    show: false, 
+    gems: 0,
+    food: 0,
+    play: 0
+  });
   const [activeTab, setActiveTab] = useState<"daily" | "achievement">("daily");
 
   const todayStr = getTodayStr();
@@ -49,14 +61,16 @@ export default function MissionsPage() {
 
     const fullTemplates: MissionTemplate[] = [
       { id: "daily-visit", title: "Absensi Petualang", description: "Cukup buka Evoca hari ini untuk klaim hadiahmu!", icon: Flame, reward: 10, goal: 1, current: 1, category: "daily" },
-      { id: "m1", title: "Pustakawan Cilik", description: "Unggah 1 dokumen baru untuk dipelajari!", icon: BookOpen, reward: 50, goal: 1, current: d.documentsUploaded || 0, category: "daily" },
-      { id: "m2", title: "Si Paling Nanya", description: "Kirim 5 pesan di sesi Chat AI.", icon: MessageCircle, reward: 30, goal: 5, current: d.messagesSent || 0, category: "daily" },
-      { id: "m4", title: "Pendengar Setia", description: "Selesaikan 1 sesi Podcast AI sampai akhir.", icon: Zap, reward: 40, goal: 1, current: d.podcastsFinished || 0, category: "daily" },
-      { id: "m3", title: "Pejuang Kuis", description: "Selesaikan kuis dengan nilai sempurna.", icon: Trophy, reward: 60, goal: 1, current: d.quizzesPerfect || 0, category: "daily" },
+      { id: "m1", title: "Pustakawan Cilik", description: "Unggah 1 dokumen baru untuk dipelajari!", icon: BookOpen, reward: 50, foodReward: 2, goal: 1, current: d.documentsUploaded || 0, category: "daily" },
+      { id: "m2", title: "Si Paling Nanya", description: "Kirim 5 pesan di sesi Chat AI.", icon: MessageCircle, reward: 30, playReward: 2, goal: 5, current: d.messagesSent || 0, category: "daily" },
+      { id: "m4", title: "Pendengar Setia", description: "Selesaikan 1 sesi Podcast AI sampai akhir.", icon: Zap, reward: 40, foodReward: 1, playReward: 1, goal: 1, current: d.podcastsFinished || 0, category: "daily" },
+      { id: "m3", title: "Pejuang Kuis", description: "Selesaikan kuis dengan nilai sempurna.", icon: Trophy, reward: 60, foodReward: 3, goal: 1, current: d.quizzesPerfect || 0, category: "daily" },
       
-      { id: "a-exemplary", title: "Pelajar Teladan", description: "Buka 10 dokumen baru untuk dipelajari.", icon: Target, reward: 200, goal: 10, current: userStats?.totalDocs || 0, category: "achievement" },
-      { id: "a-star-student", title: "Bintang Kelas", description: "Selesaikan total 50 misi harian.", icon: Sparkles, reward: 1000, goal: 50, current: userStats?.completedMissionsCount || 0, category: "achievement" },
-      { id: "a-legend", title: "Legenda Evoca", description: "Kumpulkan total 5.000 Permata.", icon: Zap, reward: 2500, goal: 5000, current: userStats?.gems || 0, category: "achievement" }
+      { id: "a-first", title: "Langkah Pertama", description: "Unggah 1 dokumen pertama untuk dipelajari.", icon: Target, reward: 50, goal: 1, current: userStats?.totalDocs || 0, category: "achievement" },
+      { id: "a-exemplary", title: "Pelajar Teladan", description: "Buka 5 dokumen baru untuk dipelajari.", icon: Target, reward: 200, foodReward: 10, goal: 5, current: userStats?.totalDocs || 0, category: "achievement" },
+      { id: "a-mission-seeker", title: "Pencari Misi", description: "Selesaikan total 10 misi harian.", icon: Sparkles, reward: 250, foodReward: 5, goal: 10, current: userStats?.completedMissionsCount || 0, category: "achievement" },
+      { id: "a-star-student", title: "Bintang Kelas", description: "Selesaikan total 25 misi harian.", icon: Sparkles, reward: 500, foodReward: 10, playReward: 10, goal: 25, current: userStats?.completedMissionsCount || 0, category: "achievement" },
+      { id: "a-legend", title: "Legenda Evoca", description: "Kumpulkan total 1.000 Permata.", icon: Trophy, reward: 1000, goal: 1000, current: userStats?.totalGemsEarned ?? userStats?.gems ?? 0, category: "achievement" }
     ];
 
     return fullTemplates
@@ -96,14 +110,21 @@ export default function MissionsPage() {
           userId: user?.uid,
           documentId: `mission-${mission.id}`,
           stage: claimKey,
-          gemsGained: mission.reward
+          gemsGained: mission.reward,
+          foodGained: mission.foodReward || 0,
+          playGained: mission.playReward || 0
         }),
       });
 
       if (response.ok) {
         await refreshStats();
-        setShowSuccess({ show: true, gems: mission.reward });
-        setTimeout(() => setShowSuccess({ show: false, gems: 0 }), 3000);
+        setShowSuccess({ 
+          show: true, 
+          gems: mission.reward,
+          food: mission.foodReward || 0,
+          play: mission.playReward || 0
+        });
+        setTimeout(() => setShowSuccess({ show: false, gems: 0, food: 0, play: 0 }), 4000);
       }
     } catch (err) {
       console.error(err);
@@ -124,17 +145,43 @@ export default function MissionsPage() {
             exit={{ opacity: 0, scale: 0.5 }}
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
-             <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden">
-               <div className="relative z-10">
-                  <div className="flex justify-center mb-6">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-20 h-20 animate-bounce drop-shadow-xl"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
-                  </div>
-                    <p className="text-3xl font-black text-amber-600 uppercase mb-2">Hebat!</p>
-                    <div className="flex flex-col gap-1 items-center">
-                       <p className="text-stone-500 font-bold uppercase text-[9px] tracking-widest">+ {showSuccess.gems} Permata Kuning</p>
-                    </div>
-               </div>
-            </div>
+              <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden max-w-sm w-full">
+                <div className="relative z-10">
+                   <div className="flex justify-center mb-0 -mt-10">
+                      <Lottie 
+                        animationData={missionCompletedAnim}
+                        loop={false}
+                        className="w-48 h-48"
+                      />
+                   </div>
+                   <div className="-mt-10">
+                      <p className="text-3xl font-black text-amber-600 uppercase mb-4">Hebat!</p>
+                      <div className="flex flex-col gap-3 items-center">
+                         <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 rounded-[1.5rem] border-2 border-amber-100 shadow-sm">
+                           <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                           <span className="text-2xl font-black text-amber-600">+{showSuccess.gems}</span>
+                         </div>
+                         
+                         <div className="flex gap-4">
+                           {showSuccess.food > 0 && (
+                             <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 rounded-2xl border-2 border-rose-100 shadow-sm">
+                               <Utensils className="w-4 h-4 text-rose-500" />
+                               <span className="text-lg font-black text-rose-600">+{showSuccess.food}</span>
+                             </div>
+                           )}
+                           {showSuccess.play > 0 && (
+                             <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-2xl border-2 border-indigo-100 shadow-sm">
+                               <Gamepad2 className="w-4 h-4 text-indigo-500" />
+                               <span className="text-lg font-black text-indigo-600">+{showSuccess.play}</span>
+                             </div>
+                           )}
+                         </div>
+                         
+                         <p className="text-stone-400 font-bold uppercase text-[9px] tracking-[0.2em] mt-2">Hadiah Berhasil Dikumpulkan</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -143,8 +190,15 @@ export default function MissionsPage() {
         
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4">
+            <Link 
+              href="/dashboard" 
+              className="inline-flex items-center gap-2 text-stone-500 hover:text-stone-900 font-black uppercase text-[10px] tracking-widest transition-colors mb-2"
+            >
+              <ChevronLeft className="w-4 h-4 stroke-[3px]" />
+              Kembali ke Roadmap
+            </Link>
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#ffc800] rounded-xl flex items-center justify-center shadow-lg transform -rotate-6 border-b-4 border-[#e5a500]">
                 <Target className="w-5 h-5 text-white" />
               </div>
@@ -155,7 +209,7 @@ export default function MissionsPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 md:gap-8">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-6 md:gap-8 w-full md:w-auto mt-4 md:mt-0">
              {/* Streak */}
              <div className={cn(
                "flex items-center gap-2 transition-all duration-500",
@@ -183,17 +237,6 @@ export default function MissionsPage() {
                 </span>
              </div>
 
-             <div className="flex items-center gap-3 ml-2">
-                <Link href="/dashboard/pet" className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shadow-lg border-b-4 border-amber-300 hover:scale-105 transition-transform active:scale-95">
-                  <Sparkles className="w-6 h-6 fill-amber-500/20" />
-                </Link>
-                <div className="relative group">
-                  <button className="w-12 h-12 bg-white border-2 border-stone-100 rounded-full flex items-center justify-center shadow-md hover:bg-stone-50 transition-colors">
-                    <Bell className="w-6 h-6 text-stone-400" />
-                  </button>
-                  <div className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-                </div>
-             </div>
           </div>
         </header>
 
@@ -253,7 +296,11 @@ export default function MissionsPage() {
                      <div>
                         <h3 className="text-[11px] font-black text-stone-400 uppercase tracking-[0.3em] mb-1">Level Saya</h3>
                         <p className="text-xl font-black text-stone-900 uppercase tracking-tight">
-                          {currentLevel >= 10 ? "Legenda Evoca" : currentLevel >= 5 ? "Pelajar Bintang" : "Pemula Hebat"}
+                          {currentLevel >= 15 ? "Dewa Belajar" : 
+                           currentLevel >= 10 ? "Legenda Evoca" : 
+                           currentLevel >= 7 ? "Pakar Materi" :
+                           currentLevel >= 5 ? "Pelajar Bintang" : 
+                           currentLevel >= 3 ? "Siswa Rajin" : "Pemula Hebat"}
                         </p>
                      </div>
                   </div>
@@ -340,12 +387,24 @@ export default function MissionsPage() {
                              <span className="text-[8px] md:text-[10px] font-black text-stone-400 uppercase tracking-widest">Progress</span>
                              <span className="text-[10px] md:text-xs font-black text-stone-900">{mission.current}/{mission.goal}</span>
                           </div>
-                           <div className="flex flex-wrap items-center gap-1.5 md:gap-3 px-2 py-0.5 md:px-3 md:py-1.5 bg-stone-50 rounded-lg md:rounded-xl border border-stone-100">
-                             <div className="flex items-center gap-1">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fcd34d" viewBox="0 0 256 256" className="w-3 h-3 md:w-4 md:h-4"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
-                               <span className="text-[9px] md:text-xs font-black text-amber-600">+{mission.reward}</span>
-                             </div>
-                           </div>
+                            <div className="flex flex-wrap items-center gap-1.5 md:gap-3 px-2 py-0.5 md:px-3 md:py-1.5 bg-stone-50 rounded-lg md:rounded-xl border border-stone-100">
+                              <div className="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fcd34d" viewBox="0 0 256 256" className="w-3 h-3 md:w-4 md:h-4"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                                <span className="text-[9px] md:text-xs font-black text-amber-600">+{mission.reward}</span>
+                              </div>
+                               {mission.foodReward && (
+                                 <div className="flex items-center gap-1">
+                                   <Utensils className="w-3 h-3 text-rose-400" />
+                                   <span className="text-[9px] md:text-xs font-black text-rose-500">+{mission.foodReward}</span>
+                                 </div>
+                               )}
+                               {mission.playReward && (
+                                 <div className="flex items-center gap-1">
+                                   <Gamepad2 className="w-3 h-3 text-indigo-400" />
+                                   <span className="text-[9px] md:text-xs font-black text-indigo-500">+{mission.playReward}</span>
+                                 </div>
+                               )}
+                            </div>
                         </div>
                         <div className="h-2 md:h-4 bg-stone-100 rounded-full overflow-hidden p-0.5 md:p-1 shadow-inner">
                           <motion.div 

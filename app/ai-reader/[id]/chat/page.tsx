@@ -268,7 +268,7 @@ export default function AiReaderChatPage({
               </div>
             )}
 
-            {(messages.length > 5 || isAlreadyFinished) && (
+            {(messages.length >= 7 || isAlreadyFinished) && (
               <div className="flex justify-center pt-8 pb-4">
                 <button
                   onClick={handleFinishMission}

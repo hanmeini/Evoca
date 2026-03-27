@@ -5,7 +5,7 @@ import { getTodayStr } from "@/src/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { documentId, stage, userId, xpGained, gemsGained, score, total } = await req.json();
+    const { documentId, stage, userId, xpGained, gemsGained, foodGained, playGained, score, total } = await req.json();
 
     if (!documentId || !stage || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       const field = fieldMap[type];
       if (field) {
         await userRef.set({
-          dailyProgress: { [todayStr]: { [field]: FieldValue.increment(1) } }
+          [`dailyProgress.${todayStr}.${field}`]: FieldValue.increment(1)
         }, { merge: true });
       }
     };
@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
 
        const updateData: any = {
           gems: FieldValue.increment(gemsGained || 0),
+          totalGemsEarned: FieldValue.increment(gemsGained || 0),
+          petFood: FieldValue.increment(foodGained || 0),
+          petPlay: FieldValue.increment(playGained || 0),
           completedMissions: FieldValue.arrayUnion(claimKey),
           completedMissionsCount: FieldValue.increment(1),
           recentActivity: FieldValue.serverTimestamp()
@@ -78,14 +81,22 @@ export async function POST(req: NextRequest) {
       }
 
       // Add stage to completedStages
-      await docRef.update({
+      const docUpdate: any = {
         completedStages: FieldValue.arrayUnion(stage),
-      });
+      };
+      if (stage === "quiz" && score !== undefined) {
+        docUpdate.quizScore = score;
+      }
+
+      await docRef.update(docUpdate);
 
       // Add XP & Gems to user
       await userRef.set({
         totalXP: FieldValue.increment(xpGained || 0),
         gems: FieldValue.increment(gemsGained || 0),
+        totalGemsEarned: FieldValue.increment(gemsGained || 0),
+        petFood: FieldValue.increment(foodGained || 0),
+        petPlay: FieldValue.increment(playGained || 0),
         recentActivity: FieldValue.serverTimestamp()
       }, { merge: true });
       

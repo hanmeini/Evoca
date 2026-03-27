@@ -13,21 +13,33 @@ import { IntroStep } from "./onboarding/IntroStep";
 import { LoadingStep } from "./onboarding/LoadingStep";
 import { MascotSelectionStep } from "./onboarding/MascotSelectionStep";
 import { RewardStep } from "./onboarding/RewardStep";
+import { useAuth } from "@/src/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function OnboardingFlow() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState(1);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, router]);
   const [selectedMascot, setSelectedMascot] = useState<MascotType>(MASCOTS[0].id);
   const [loadingProgress, setLoadingProgress] = useState(1);
 
   const handleMascotNav = (direction: 'next' | 'prev') => {
-    const currentIndex = MASCOTS.findIndex(m => m.id === selectedMascot);
-    let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-    
-    // Boundary check (stick at ends)
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= MASCOTS.length) nextIndex = MASCOTS.length - 1;
-    
-    setSelectedMascot(MASCOTS[nextIndex].id);
+    const starterMascots = MASCOTS.slice(0, 3);
+    const currentIndex = starterMascots.findIndex(m => m.id === selectedMascot);
+    let nextIndex;
+    if (direction === 'next') {
+      nextIndex = (currentIndex + 1) % starterMascots.length;
+    } else {
+      nextIndex = (currentIndex - 1 + starterMascots.length) % starterMascots.length;
+    }
+    setSelectedMascot(starterMascots[nextIndex].id);
   };
 
   // Persist mascot selection to localStorage
@@ -79,6 +91,7 @@ export default function OnboardingFlow() {
       case 4:
       case 5:
       case 6: return { main: "bg-indigo-600", accent: "bg-indigo-700/50", text: "text-indigo-600" };
+      case 7: return { main: "bg-indigo-950", accent: "bg-indigo-800/30", text: "text-indigo-400" };
       case 2: return { main: "bg-emerald-500", accent: "bg-emerald-600/50", text: "text-emerald-600" };
       case 3: return { main: "bg-amber-400", accent: "bg-amber-500/50", text: "text-amber-500" };
       default: return { main: "bg-white", accent: "bg-stone-100", text: "text-stone-900" };
@@ -129,8 +142,8 @@ export default function OnboardingFlow() {
         </div>
       )}
 
-      {/* Top Navigation - Back Arrow (Hide on Step 5) */}
-      {step !== 5 && (
+      {/* Top Navigation - Back Arrow (Hide on Step 5 and 7) */}
+      {step !== 5 && step !== 7 && (
         <div className="fixed top-8 left-8 z-50">
            <div 
              className={`w-12 h-12 rounded-full flex items-center justify-center ${step <= 3 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-stone-100 text-stone-900'} backdrop-blur-sm cursor-pointer hover:scale-110 transition-all`} 

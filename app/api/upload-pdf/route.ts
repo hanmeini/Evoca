@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import cloudinary from "@/src/lib/cloudinary";
 import { adminDb } from "@/src/lib/firebase-admin";
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Use dynamic edge handling to support large file uploads if needed, 
 export const maxDuration = 60; // Set max duration for Vercel/NextJS to 60s
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
     const fileUrl = (cloudinaryResponse as { secure_url: string }).secure_url;
 
     // 3. Multimodal Analysis with Gemini
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
