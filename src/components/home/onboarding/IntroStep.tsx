@@ -14,21 +14,21 @@ export const IntroStep = ({ step }: IntroStepProps) => {
       title: "PLAY YOUR\nWay experience\nof gaming",
       desc: "Ubah cara belajarmu menjadi petualangan yang seru dan adiktif layaknya bermain game favoritmu.",
       emoji: "🐯",
-      image: "/images/tiger-mascot.png",
+      image: "/pet/tiger/image.png",
     },
     {
       tag: "Features",
       title: "PETA QUEST\nInteraktif",
       desc: "Setiap dokumen yang kamu baca adalah quest yang memberimu XP, koin, dan item langka.",
       emoji: "🐲",
-      image: "/images/komodo-mascot-new.png",
+      image: "/pet/komodo/image.png",
     },
     {
       tag: "Benefits",
       title: "Level Up\nYour Mind",
       desc: "Tingkatkan rank kamu di leaderboard global dan buktikan kamu adalah pembelajar terkuat.",
       emoji: "🦏",
-      image: "/images/badak-mascot.png",
+      image: "/pet/rhino/image.png",
     },
   ][step - 1];
 
