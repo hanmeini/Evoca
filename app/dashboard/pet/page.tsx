@@ -94,6 +94,7 @@ export default function PetPage() {
   const [interactionType, setInteractionType] = useState<string | null>(null);
    const [showGuide, setShowGuide] = useState(false);
    const [showLowGems, setShowLowGems] = useState(false);
+   const [petToBuy, setPetToBuy] = useState<{id: string, name: string, price: number} | null>(null);
 
    const todayStr = getTodayStr();
    const petFood = userStats?.petFood || 0;
@@ -244,6 +245,15 @@ export default function PetPage() {
      });
      if (typeof window !== "undefined") {
        localStorage.setItem("selectedMascot", petId);
+     }
+   };
+
+   const handlePetClick = (petId: string, price: number, name: string) => {
+     if (ownedMascots.includes(petId)) {
+       selectPet(petId);
+     } else {
+       if (gems < price) return setShowLowGems(true);
+       setPetToBuy({ id: petId, name, price });
      }
    };
 
@@ -437,6 +447,65 @@ export default function PetPage() {
          )}
        </AnimatePresence>
 
+       {/* Purchase Confirmation Popup */}
+       <AnimatePresence>
+         {petToBuy && (
+           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               onClick={() => setPetToBuy(null)}
+               className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+             />
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.8, y: 40 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.8, y: 40 }}
+               className="relative w-full max-w-sm bg-white rounded-[3rem] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.4)] border border-white/20 p-8 text-center"
+             >
+                <div className="w-32 h-32 mx-auto bg-stone-50 rounded-full border-4 border-stone-100 p-4 mb-6 shadow-inner relative flex items-center justify-center">
+                  <img 
+                    src={`/pet/${petToBuy.id}/young.png`} 
+                    alt={petToBuy.name}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `/pet/${petToBuy.id}/image.png`;
+                    }}
+                  />
+                  <div className="absolute -bottom-2 -right-2 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-1 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fcd34d" viewBox="0 0 256 256" className="w-4 h-4"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                    <span className="font-black text-amber-600 text-sm">{petToBuy.price}</span>
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-black text-stone-800 uppercase tracking-tight mb-2">Beli Pet Baru?</h3>
+                <p className="text-stone-500 font-bold text-sm leading-relaxed mb-8 px-2">
+                  Yakin ingin membeli <span className="text-[#8b5cf6] font-black">{petToBuy.name}</span>? Permata akan dikurangi dan tidak dapat dikembalikan.
+                </p>
+
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setPetToBuy(null)}
+                    className="flex-1 py-4 bg-stone-100 border-b-4 border-stone-200 text-stone-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-stone-200 active:translate-y-1 active:border-b-0 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={() => {
+                      buyPet(petToBuy.id, petToBuy.price);
+                      setPetToBuy(null);
+                    }}
+                    className="flex-1 py-4 bg-[#58cc02] border-b-4 border-[#46a302] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#46a302] active:translate-y-1 active:border-b-0 transition-all shadow-lg shadow-green-200"
+                  >
+                    Beli
+                  </button>
+                </div>
+             </motion.div>
+           </div>
+         )}
+       </AnimatePresence>
+
       <div className="max-w-[1240px] mx-auto px-4 pt-28 pb-32 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 relative z-10">
         <div className="flex flex-col items-center">
           {/* Claim Reward Banner Removed */}
@@ -609,7 +678,7 @@ export default function PetPage() {
               <motion.div
                 key={pet.id}
                 whileHover={!isSelected ? { y: -5 } : {}}
-                onClick={() => isOwned ? selectPet(pet.id) : buyPet(pet.id, pet.price || 0)}
+                onClick={() => handlePetClick(pet.id, pet.price || 0, pet.name)}
                 className={cn(
                   "p-4 rounded-3xl border-2 transition-all cursor-pointer bg-white relative",
                   isSelected ? "border-[#58cc02] bg-[#f7fff0]" : isOwned ? "border-stone-200 hover:border-stone-400" : "border-stone-100 opacity-60"
@@ -655,7 +724,7 @@ export default function PetPage() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowGuide(true)}
-        className="fixed bottom-8 right-8 z-60 flex items-center gap-3 px-6 py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl shadow-xl group hover:border-[#8b5cf6] hover:text-[#8b5cf6] transition-all"
+        className="fixed bottom-28 md:bottom-8 right-4 md:right-8 z-60 flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white border-2 border-stone-200 text-stone-700 rounded-2xl shadow-xl group hover:border-[#8b5cf6] hover:text-[#8b5cf6] transition-all"
       >
         <Book className="w-6 h-6" />
         <span className="font-black text-xs uppercase tracking-widest">Panduan</span>

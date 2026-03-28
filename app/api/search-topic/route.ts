@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
     // 1. Generate Content with Gemini
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
 
     const prompt = `Anda adalah asisten ahli pendidikan. Tolong buatkan materi belajar yang komprehensif, menarik, dan mudah dipahami mengenai topik: "${topic}".
 Tujuan Anda adalah menyusun informasi penting untuk membantu siswa belajar dan bersiap menghadapi kuis/ujian.
@@ -65,14 +68,12 @@ Pastikan "extractedText" berisi narasi lengkap dari materi tersebut agar sistem 
     let aiResult;
     try {
       aiResult = JSON.parse(cleanJsonString);
+      if (!aiResult.extractedText || aiResult.extractedText.trim() === "") {
+        throw new Error("Materi kosong.");
+      }
     } catch {
-       // Fallback if AI fails to produce valid JSON
-       aiResult = {
-         title: topic,
-         summary: "Gagal membuat ringkasan otomatis.",
-         extractedText: "Materi gagal dibuat secara mendalam.",
-         keyConcepts: []
-       };
+      console.error("Failed to parse Gemini JSON or generation failed:", cleanJsonString);
+      throw new Error("Gagal menyusun materi dari topik tersebut. Silakan coba kata kunci lain atau coba lagi nanti.");
     }
 
     const { extractedText, ...metadata } = aiResult;

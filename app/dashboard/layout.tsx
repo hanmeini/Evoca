@@ -74,8 +74,8 @@ export default function DashboardLayout({
 
   const navItems = [
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
-    { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
     { icon: Target, label: "Misi Harian", href: "/dashboard/missions", hasBadge: hasClaimableMissions },
+    { icon: Trophy, label: "Peringkat", href: "/dashboard/leaderboard" },
     { icon: PawPrint, label: "Peliharaan", href: "/dashboard/pet" },
   ];
 

@@ -251,7 +251,7 @@ export default function AiReaderQuizPage({
               Coba Lagi
             </button>
             <Link
-              href={`/dashboard/missions?completed=true&id=${id}`}
+              href={`/ai-reader/${id}/podcast${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
               className="w-full sm:flex-1 h-16 bg-[#58cc02] border-b-4 border-[#46a302] text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-green-100 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:border-b-0 active:translate-y-1"
             >
               BERIKUTNYA <ArrowRight className="w-4 h-4" />

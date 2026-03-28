@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
 
     // 3. Multimodal Analysis with Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
 
     // Convert to base64 for Gemini multimodal input
     const base64Data = buffer.toString("base64");
@@ -103,14 +106,12 @@ Pastikan "extractedText" berisi semua teks yang ada di dalam gambar/dokumen agar
     let aiResult;
     try {
       aiResult = JSON.parse(cleanJsonString);
+      if (!aiResult.extractedText || aiResult.extractedText.trim() === "" || aiResult.extractedText === "Teks gagal diekstrak.") {
+        throw new Error("Tidak ada teks yang dapat diekstrak.");
+      }
     } catch {
-      console.error("Failed to parse Gemini JSON:", cleanJsonString);
-      aiResult = {
-        title: file.name,
-        summary: "Berhasil diunggah namun gagal mengekstrak metadata otomatis.",
-        extractedText: "Teks gagal diekstrak.",
-        keyConcepts: []
-      };
+      console.error("Failed to parse Gemini JSON or extract text:", cleanJsonString);
+      throw new Error("Gagal mengekstrak teks dari dokumen. Pastikan gambar/PDF terbaca dengan jelas atau coba lagi.");
     }
 
     const { extractedText, ...metadata } = aiResult;

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Trophy, Target } from "lucide-react";
+import { LayoutDashboard, Trophy, Target, LogOut, User, PawPrint } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getTodayStr } from "@/src/lib/utils";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { user, userStats } = useAuth();
+  const { user, userStats, logOut } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const hasClaimableMissions = useMemo(() => {
     if (!userStats) return false;
@@ -47,8 +48,9 @@ export function MobileBottomNav() {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
-    { icon: Trophy, label: "Papan Skor", href: "/dashboard/leaderboard" },
     { icon: Target, label: "Misi Harian", href: "/dashboard/missions", hasBadge: hasClaimableMissions },
+    { icon: Trophy, label: "Peringkat", href: "/dashboard/leaderboard" },
+    { icon: PawPrint, label: "Peliharaan", href: "/dashboard/pet" },
   ];
 
   return (
@@ -80,39 +82,60 @@ export function MobileBottomNav() {
           </Link>
         );
       })}
-      {/* Profile Link Mobile */}
-      <Link href="/dashboard/profile" className="group flex-1 mx-1 flex justify-center">
-        <div
-          className={cn(
-             "flex flex-col items-center justify-center w-full max-w-[80px] py-2 px-1 rounded-2xl transition-all group-active:scale-95 group-active:translate-y-1",
-             pathname === "/dashboard/profile"
-                ? "bg-white border-2 border-[#8b5cf6] text-[#8b5cf6] shadow-[0_4px_0_0_#8b5cf6]"
-                : "text-stone-400 border-2 border-transparent hover:bg-white hover:border-stone-200 hover:text-stone-700 shadow-[0_4px_0_0_transparent] hover:shadow-[0_4px_0_0_#e5e7eb]"
-          )}
+      {/* Profile Button Mobile */}
+      <div className="group flex-1 mx-1 flex justify-center relative">
+        <button 
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          className="w-full flex justify-center focus:outline-none"
         >
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="relative w-5 h-5 sm:w-6 sm:h-6 shrink-0">
-               {user?.photoURL ? (
-                 <div className={cn("w-full h-full rounded-md shadow-sm overflow-hidden relative border", pathname === "/dashboard/profile" ? "border-transparent" : "border-stone-200")}>
-                    <Image
-                      src={user.photoURL}
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                    />
-                 </div>
-               ) : (
-                 <div className={cn("w-full h-full rounded-md flex items-center justify-center text-white font-black text-[8px] sm:text-[10px] shadow-sm", pathname === "/dashboard/profile" ? "bg-linear-to-tr from-[#8b5cf6] to-[#a78bfa]" : "bg-stone-300")}>
-                    {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
-                 </div>
-               )}
+          <div
+            className={cn(
+               "flex flex-col items-center justify-center w-full max-w-[80px] py-2 px-1 rounded-2xl transition-all group-active:scale-95 group-active:translate-y-1",
+               pathname === "/dashboard/profile"
+                  ? "bg-white border-2 border-[#8b5cf6] text-[#8b5cf6] shadow-[0_4px_0_0_#8b5cf6]"
+                  : "text-stone-400 border-2 border-transparent hover:bg-white hover:border-stone-200 hover:text-stone-700 shadow-[0_4px_0_0_transparent] hover:shadow-[0_4px_0_0_#e5e7eb]"
+            )}
+          >
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="relative w-5 h-5 sm:w-6 sm:h-6 shrink-0">
+                 {user?.photoURL ? (
+                   <div className={cn("w-full h-full rounded-md shadow-sm overflow-hidden relative border", pathname === "/dashboard/profile" ? "border-transparent" : "border-stone-200")}>
+                      <Image
+                        src={user.photoURL}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                      />
+                   </div>
+                 ) : (
+                   <div className={cn("w-full h-full rounded-md flex items-center justify-center text-white font-black text-[8px] sm:text-[10px] shadow-sm", pathname === "/dashboard/profile" ? "bg-linear-to-tr from-[#8b5cf6] to-[#a78bfa]" : "bg-stone-300")}>
+                      {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
+                   </div>
+                 )}
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight line-clamp-1 text-inherit">
+                Profil
+              </span>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight line-clamp-1 text-inherit">
-              Profil
-            </span>
           </div>
-        </div>
-      </Link>
+        </button>
+
+        {/* Profile Menu Popup */}
+        {showProfileMenu && (
+          <div className="absolute bottom-[calc(100%+12px)] right-2 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-200 p-2 w-48 animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
+            <button
+              onClick={() => {
+                setShowProfileMenu(false);
+                if (logOut) logOut();
+              }}
+              className="flex items-center gap-3 w-full p-3 font-bold text-sm text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+            >
+              <LogOut className="w-4 h-4 text-rose-500" />
+              Keluar
+            </button>
+          </div>
+        )}
+      </div>
     </nav>
   );
 }
