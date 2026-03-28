@@ -80,20 +80,29 @@ export function PdfUploader() {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        let errorMessage = "Failed to process PDF";
+        const rawResponse = await response.text();
+        let errorMessage = "Gagal memproses dokumen (Server Error)";
+        
         try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorMessage;
+          const errorData = JSON.parse(rawResponse);
+          errorMessage = errorData.error || errorData.message || errorMessage;
         } catch (e) {
-          // If not JSON, use the raw text if short, or a generic message
-          errorMessage = text.length < 100 ? text : "Server error (504/500)";
+           if (rawResponse && rawResponse.length < 200) {
+             errorMessage = rawResponse;
+           }
         }
+        
+        console.error(`[PDF Upload Error] Status: ${response.status}`, {
+          status: response.status,
+          statusText: response.statusText,
+          message: errorMessage,
+          original: rawResponse.substring(0, 500)
+        });
+        
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-
       setUploadComplete(true);
 
       // Track mission progress
@@ -105,26 +114,27 @@ export function PdfUploader() {
         }).catch(e => console.error("Mission track failed:", e));
       }
 
-      // Store in localStorage for quick access/persistence on refresh
       if (data.document) {
         const localHistory = JSON.parse(localStorage.getItem('evoca_roadmap_cache') || '[]');
         const updatedHistory = [data.document, ...localHistory].slice(0, 20);
         localStorage.setItem('evoca_roadmap_cache', JSON.stringify(updatedHistory));
       }
 
-      // Navigate to the mission outline page instead of jumping straight to summary
       setTimeout(() => {
         const currentMateri = (userStats?.totalDocs || 0) + 1;
         const currentTheme = `evoca${((currentMateri - 1) % 5) + 1}`;
         router.push(`/ai-reader/${data.document.id}?theme=${currentTheme}&materi=${currentMateri}`);
-      }, 1500); // short delay to show success icon
-    } catch (err: unknown) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong during upload",
-      );
+      }, 1500); 
+    } catch (err: any) {
+      console.error("Critical Upload failure:", err);
+      
+      // Handle potential Axios-like or Fetch error objects
+      const finalMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          "Gagal mengunggah dokumen. Silakan coba lagi.";
+                          
+      setError(finalMessage);
     } finally {
       setIsUploading(false);
     }

@@ -110,8 +110,10 @@ export default function AiReaderQuizPage({
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
-      // Use the score state which has been updated in handleSelect
-      const finalScore = score;
+      // Calculate final score accurately using the lastAnswerCorrect flag
+      // to avoid asynchronous state issues at the end of the quiz
+      const finalScore = lastAnswerCorrect ? score + 1 : score;
+      
       setIsFinished(true);
       if (user) {
         try {

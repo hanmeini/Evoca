@@ -450,65 +450,53 @@ export default function DashboardOverviewPage() {
       `,
         }}
       />
-      {/* Streak / Quest Completed Celebration Overlay */}
+      {/* Streak / Quest Completed Celebration - Full Screen Blur Version */}
       <AnimatePresence>
         {showStreakAnim && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-3xl bg-black/30"
           >
-            {/* Dark overlay backdrop */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.8 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-stone-900/80 backdrop-blur-md"
-            />
-            {/* Lottie Animation */}
-            <motion.div
-              initial={{ scale: 0.8, y: 50 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.8, y: 50, opacity: 0 }}
-              className="relative z-10 w-96 max-w-[90vw] flex flex-col items-center"
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 1.1, opacity: 0 }}
+              className="flex flex-col items-center text-center"
             >
-              <Lottie
-                animationData={celebrationType === "streak" ? fireAnim : missionCompletedAnim}
-                loop={celebrationType === "streak"}
-                className={cn(
-                  "w-full drop-shadow-2xl",
-                  celebrationType === "streak" ? "scale-100" : ""
-                )}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="text-center mt-[-40px]"
-              >
-                <h2 className={cn(
-                  "text-4xl font-black uppercase tracking-tighter drop-shadow-md",
-                  celebrationType === "streak" ? "text-orange-500" : "text-amber-400"
-                )}>
-                  {celebrationType === "streak" ? "Streak Aktif!" : "Quest Selesai!"}
-                </h2>
-                <p className="text-amber-100 font-bold tracking-widest uppercase mt-2 drop-shadow-sm text-sm">
-                  {celebrationType === "streak" ? "Jangan biarkan apinya padam! 🔥" : "Langkah mantap menuju pro! ✨"}
-                </p>
+               <Lottie
+                 animationData={celebrationType === "streak" ? fireAnim : missionCompletedAnim}
+                 loop={celebrationType === "streak"}
+                 className={cn(
+                   "w-64 h-64 sm:w-80 sm:h-80 drop-shadow-[0_0_50px_rgba(249,115,22,0.4)]",
+                   celebrationType === "streak" ? "scale-100" : "scale-110"
+                 )}
+               />
+               
+               <div className="relative z-10 mt-[-20px]">
+                 <h2 className={cn(
+                   "text-5xl font-black uppercase tracking-tighter drop-shadow-[0_5px_15px_rgba(0,0,0,0.3)]",
+                   celebrationType === "streak" ? "text-orange-500" : "text-white"
+                 )}>
+                   {celebrationType === "streak" ? "Streak Aktif!" : "Misi Selesai!"}
+                 </h2>
+                 <p className="text-white font-black uppercase text-xs tracking-[0.3em] mt-2 drop-shadow-md">
+                   {celebrationType === "streak" ? "Jangan biarkan apinya padam! 🔥" : "Langkah mantap menuju pro! ✨"}
+                 </p>
 
-                {celebrationType === "quest" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.2, type: "spring" }}
-                    className="mt-6 bg-indigo-600/90 text-white px-8 py-3 rounded-full font-black text-lg border-2 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.6)] inline-flex gap-3 items-center"
-                  >
-                    <Zap className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                    +{earnedXP} XP
-                  </motion.div>
-                )}
-              </motion.div>
+                 {celebrationType === "quest" && (
+                   <motion.div
+                     initial={{ opacity: 0, scale: 0.5 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     transition={{ delay: 0.3, type: "spring" }}
+                     className="mt-8 bg-indigo-600/90 backdrop-blur-md text-white px-8 py-3 rounded-full font-black text-xl border-2 border-indigo-400/50 shadow-2xl inline-flex gap-3 items-center"
+                   >
+                     <Zap className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                     +{earnedXP} XP
+                   </motion.div>
+                 )}
+               </div>
             </motion.div>
           </motion.div>
         )}
@@ -1135,39 +1123,38 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Success Celebration Overlay */}
+      {/* Success Celebration Overlay - Ethereal Blur Version */}
       <AnimatePresence>
         {showClaimReward.show && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-3xl bg-indigo-900/10"
           >
-            <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-indigo-500 text-center relative overflow-hidden">
+            <div className="text-center relative z-10">
               <div className="relative z-10">
                 <div className="flex justify-center mb-6">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-20 h-20 animate-bounce drop-shadow-xl"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-24 h-24 animate-bounce drop-shadow-[0_0_30px_rgba(252,211,77,0.8)]"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
                 </div>
-                <p className="text-3xl font-black text-amber-600 uppercase mb-2">Hebat!</p>
-                <div className="flex flex-col gap-1 items-center">
-                  <p className="text-stone-500 font-bold uppercase text-[9px] tracking-widest">+ {showClaimReward.amount} Permata Kuning</p>
-                  <p className="text-indigo-500 font-black uppercase text-[10px] tracking-widest">+ {showClaimReward.amount} XP Petualang</p>
+                <p className="text-5xl font-black text-white uppercase mb-4 drop-shadow-lg tracking-tighter">HEBAT!</p>
+                <div className="flex flex-col gap-3 items-center">
+                  <p className="text-amber-300 font-extrabold uppercase text-xs tracking-[0.3em] drop-shadow-md">+ {showClaimReward.amount} Permata Kuning</p>
+                  <p className="text-indigo-400 font-black uppercase text-sm tracking-[0.2em] drop-shadow-md">+ {showClaimReward.amount} XP Petualang</p>
                 </div>
               </div>
 
-              {/* Confetti-like bits with Framer Motion */}
-              {[...Array(6)].map((_, i) => (
+              {[...Array(12)].map((_, i) => (
                 <motion.div
                   key={i}
                   initial={{ y: 0, x: 0, opacity: 1 }}
                   animate={{
-                    y: [0, -100, -200],
-                    x: [0, (i % 2 === 0 ? 50 : -50), (i % 2 === 0 ? 100 : -100)],
+                    y: [0, -200, -400],
+                    x: [0, (i % 2 === 0 ? 100 : -100), (i % 2 === 0 ? 200 : -200)],
                     opacity: 0
                   }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute top-1/2 left-1/2 text-xl"
+                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.1 }}
+                  className="absolute top-1/2 left-1/2 text-3xl"
                 >
                   ✨
                 </motion.div>
@@ -1177,76 +1164,71 @@ export default function DashboardOverviewPage() {
         )}
       </AnimatePresence>
 
-      {/* Full Screen Mission Completed Animation */}
+      {/* Full Screen Mission Completed Animation - Blur Version */}
       <AnimatePresence>
         {isMissionActive && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none backdrop-blur-3xl bg-black/20"
           >
             <motion.div
-              initial={{ scale: 0.5, y: 50 }}
-              animate={{ scale: 1, y: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.2, opacity: 0 }}
-              className="w-full max-w-2xl px-8"
+              className="w-full max-w-2xl px-8 flex flex-col items-center"
             >
-              <div className="bg-white/90 backdrop-blur-2xl p-12 rounded-[4rem] shadow-[0_32px_128px_rgba(0,0,0,0.3)] border-4 border-amber-400 text-center relative overflow-hidden group">
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-80 h-80 mb-2">
-                    <Lottie
-                      animationData={missionCompletedAnim}
-                      loop={false}
-                      onComplete={() => {
-                        // Optional: maybe add some confetti or close after some delay
-                      }}
-                    />
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1 }}
-                    className="space-y-4"
-                  >
-                    <h2 className="text-5xl font-black text-amber-600 uppercase tracking-tighter drop-shadow-sm">
-                      LUAR BIASA!
-                    </h2>
-                    <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-3 bg-amber-100 px-8 py-4 rounded-3xl border-2 border-amber-200">
-                        <div className="w-10 h-10 relative">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
-                        </div>
-                        <span className="text-3xl font-black text-amber-700">+50 PERMATA</span>
-                      </div>
-                      <p className="mt-4 text-stone-500 font-bold uppercase tracking-widest text-xs">Petualanganmu Berlanjut!</p>
-                    </div>
-                  </motion.div>
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-96 h-96 mb-2 drop-shadow-[0_0_50px_rgba(251,191,36,0.3)]">
+                  <Lottie
+                    animationData={missionCompletedAnim}
+                    loop={false}
+                  />
                 </div>
 
-                {/* Decorative Sparkles */}
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{
-                      opacity: [0, 1, 0],
-                      scale: [0.5, 1, 0.5],
-                      x: Math.random() * 400 - 200,
-                      y: Math.random() * 400 - 200
-                    }}
-                    transition={{
-                      duration: 3 + Math.random() * 2,
-                      repeat: Infinity,
-                      delay: Math.random() * 2
-                    }}
-                    className="absolute top-1/2 left-1/2 text-3xl pointer-events-none"
-                  >
-                    ✨
-                  </motion.div>
-                ))}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-7xl font-black text-white uppercase tracking-tighter drop-shadow-[0_5px_15px_rgba(0,0,0,0.3)]">
+                    LUAR BIASA!
+                  </h2>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-4 px-10 py-5 rounded-[2.5rem] bg-amber-400/20 border-2 border-amber-400/30 backdrop-blur-md">
+                      <div className="w-12 h-12 relative drop-shadow-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                      </div>
+                      <span className="text-4xl font-black text-amber-400 drop-shadow-md">+50 PERMATA</span>
+                    </div>
+                    <p className="mt-6 text-white/70 font-black uppercase tracking-[0.4em] text-xs">Petualanganmu Berlanjut!</p>
+                  </div>
+                </motion.div>
               </div>
+
+              {/* Decorative Sparkles */}
+              {[...Array(15)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1.5, 0.5],
+                    x: Math.random() * 600 - 300,
+                    y: Math.random() * 600 - 300
+                  }}
+                  transition={{
+                    duration: 3 + Math.random() * 3,
+                    repeat: Infinity,
+                    delay: Math.random() * 2
+                  }}
+                  className="absolute top-1/2 left-1/2 text-4xl pointer-events-none drop-shadow-glow"
+                >
+                  ✨
+                </motion.div>
+              ))}
             </motion.div>
           </motion.div>
         )}

@@ -50,11 +50,36 @@ export async function POST(req: NextRequest) {
     `;
 
     // 2. Generate Podcast Script via Gemini API
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    
+    // Define the schema for the podcast script
+    const schema = {
+      description: "Podcast dialogue script with two speakers",
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          speaker: {
+            type: SchemaType.STRING,
+            enum: ["A", "B"],
+            description: "Speaker label (A or B)"
+          },
+          text: {
+            type: SchemaType.STRING,
+            description: "Dialogue text spoken by the host"
+          }
+        },
+        required: ["speaker", "text"]
+      }
+    } as any;
+
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
+      generationConfig: { 
+        responseMimeType: "application/json",
+        responseSchema: schema
+      }
     });
 
     const response = await model.generateContent(prompt);

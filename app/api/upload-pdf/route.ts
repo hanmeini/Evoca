@@ -96,15 +96,24 @@ KESIMPULAN:
 
 Pastikan "extractedText" berisi semua teks yang ada di dalam gambar/dokumen agar sistem chat bisa bekerja nantinya.`;
 
-    const response = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+    let response;
+    try {
+      response = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
+          }
         }
+      ]);
+    } catch (apiError: any) {
+      console.error("[", new Date().toLocaleTimeString(), "] Stage: Gemini Analysis FAILED", apiError);
+      if (apiError.message?.includes("429") || apiError.status === 429) {
+        throw new Error("Kuota harian AI habis (Limit: 20x/hari). Silakan coba lagi besok atau gunakan akun lain.");
       }
-    ]);
+      throw apiError;
+    }
     console.log("Gemini analysis done:", (Date.now() - startTime) / 1000, "s");
 
     const aiText = response.response.text() || "{}";
@@ -144,10 +153,24 @@ Pastikan "extractedText" berisi semua teks yang ada di dalam gambar/dokumen agar
     return NextResponse.json({ success: true, document: newDoc }, { status: 200 });
 
   } catch (error: unknown) {
-    console.error("Error processing PDF:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to process PDF";
+    console.error("CRITICAL ERROR in upload-pdf route:", error);
+    
+    // Provide detailed error messaging based on the error context
+    let errorMessage = "Terjadi kesalahan sistem saat memproses dokumen.";
+    if (error instanceof Error) {
+       errorMessage = error.message;
+       // Add context if we recognize certain error types
+       if (errorMessage.includes("429")) {
+         errorMessage = "Kuota harian AI Gemini telah habis. Silakan coba lagi besok.";
+       }
+    }
+
     return NextResponse.json(
-      { error: errorMessage },
+      { 
+        success: false, 
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }

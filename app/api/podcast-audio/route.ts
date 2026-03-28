@@ -11,10 +11,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // A: Bahasa Indonesia, B: Bahasa Melayu (to create a distinct second speaker voice)
+    const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+    
+    // Attempt ElevenLabs if Key is present
+    if (apiKey && apiKey.startsWith("sk_")) {
+      try {
+        // High Quality Default Voices: Josh (A), Rachel (B)
+        const selectedVoiceId = speakerId === "A" ? "TxGEqnSAsmSBH8I9Yp3E" : "21m00Tcm4TlvDq8ikWAM";
+
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "xi-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            text: text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const audioBuffer = await response.arrayBuffer();
+          return new NextResponse(audioBuffer, {
+            status: 200,
+            headers: {
+              "Content-Type": "audio/mpeg",
+              "Content-Length": audioBuffer.byteLength.toString(),
+            },
+          });
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn("ElevenLabs info:", errorData?.detail?.message || "Quota/Service issue. Falling back to Google TTS.");
+        }
+      } catch (e) {
+        console.error("ElevenLabs critical failure:", e);
+      }
+    }
+
+    // Fallback or Secondary: Google TTS (Reliable/Free)
     const voiceLang = speakerId === "A" ? "id" : "ms";
     
-    // google-tts-api handles chunking automatically for texts > 200 chars
     const base64AudioArray = await googleTTS.getAllAudioBase64(text, {
       lang: voiceLang,
       slow: false,
@@ -22,7 +63,6 @@ export async function POST(req: NextRequest) {
       splitPunct: ',.?',
     });
 
-    // Combine all base64 chunks into a single ArrayBuffer/Buffer
     const audioBuffers = base64AudioArray.map((chunk: { base64: string }) => {
         return Buffer.from(chunk.base64, 'base64');
     });
@@ -35,9 +75,10 @@ export async function POST(req: NextRequest) {
         "Content-Length": finalAudioBuffer.length.toString(),
       },
     });
+
   } catch (error: unknown) {
-    console.error("Error generating ElevenLabs audio:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate audio";
+    console.error("Critical error generating audio:", error);
+    const errorMessage = error instanceof Error ? error.message : "Gagal memuat suara podcast.";
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

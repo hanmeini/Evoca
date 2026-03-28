@@ -79,11 +79,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, quiz: docData.quizData }, { status: 200 });
     }
 
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    
+    // Define the schema for the quiz
+    const quizSchema = {
+      description: "List of multiple choice quiz questions",
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          question: {
+            type: SchemaType.STRING,
+            description: "The text of the quiz question"
+          },
+          options: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+            description: "List of exactly 4 multiple choice options"
+          },
+          answerIndex: {
+            type: SchemaType.NUMBER,
+            description: "The zero-based index of the correct option"
+          }
+        },
+        required: ["question", "options", "answerIndex"]
+      }
+    } as any;
+
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
+      generationConfig: { 
+        responseMimeType: "application/json",
+        responseSchema: quizSchema
+      }
     });
 
     let prompt = "";

@@ -63,34 +63,44 @@ export async function POST(req: NextRequest) {
        return NextResponse.json({ success: true, message: "Reward claimed successfully" });
     }
 
+    // Document based progress
     const docRef = adminDb.collection("documents").doc(documentId);
-    
-    // Check if stage is already completed
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
        return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
+
     const data = docSnap.data();
     const completedStages = data?.completedStages || [];
+    const isNewStage = !completedStages.includes(stage);
 
-    if (!completedStages.includes(stage)) {
-      // Mission tracking integration
-      if (stage === "podcast") await trackMission("podcast");
-      if (stage === "quiz" && score !== undefined && total !== undefined && score === total) {
-        await trackMission("quiz");
+    // Track Mission Progress (Daily Missions)
+    // We allow mission tracking (like perfect quiz) even if the document stage was already finished before
+    if (stage === "podcast") await trackMission("podcast");
+    if (stage === "quiz" && score !== undefined && total !== undefined && score === total) {
+      await trackMission("quiz");
+    }
+
+    // Update document completion and scores
+    if (isNewStage || (stage === "quiz" && score !== undefined)) {
+      const docUpdate: any = {};
+      if (isNewStage) {
+        docUpdate.completedStages = FieldValue.arrayUnion(stage);
       }
-
-      // Add stage to completedStages
-      const docUpdate: any = {
-        completedStages: FieldValue.arrayUnion(stage),
-      };
       if (stage === "quiz" && score !== undefined) {
-        docUpdate.quizScore = score;
+        // Only update if it's the first time or if the score improved
+        if (score > (data?.quizScore || 0)) {
+          docUpdate.quizScore = score;
+        }
       }
+      
+      if (Object.keys(docUpdate).length > 0) {
+        await docRef.update(docUpdate);
+      }
+    }
 
-      await docRef.update(docUpdate);
-
-      // Add XP & Gems to user
+    // Award XP/Gems only for the FIRST completion of a stage per document
+    if (isNewStage) {
       await userRef.set({
         totalXP: FieldValue.increment(xpGained || 0),
         gems: FieldValue.increment(gemsGained || 0),
@@ -103,7 +113,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: `Completed ${stage}` });
     }
 
-    return NextResponse.json({ success: true, message: "Already completed" });
+    return NextResponse.json({ success: true, message: "Progress saved (Repeated completion, no new XP/Gems)" });
     
   } catch (error: unknown) {
     console.error("Progress update failed:", error);
