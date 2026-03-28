@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
                   2
                 </div>
               </div>
-              <div className="w-full bg-[#a78bfa]/50 rounded-tl-[2rem] p-4 pt-10 text-center min-h-[120px] flex flex-col justify-center border-l border-t border-white/20 overflow-hidden">
+              <div className="w-full bg-[#a78bfa]/50 rounded-tl-[2rem] p-4 pt-10 text-center min-h-[120px] flex flex-col justify-center border-l border-t border-white/20 overflow-hidden min-w-0">
                 <p className="text-white font-bold text-xs truncate mb-1 text-center w-full px-1">{topThree[0].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
@@ -170,8 +170,8 @@ export default function LeaderboardPage() {
                   1
                 </div>
               </div>
-              <div className="w-full bg-[#c4b5fd] rounded-t-[2rem] p-4 pt-12 text-center min-h-[160px] flex flex-col justify-center shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-white/30 border-x border-t border-white/40 relative z-10 scale-105 origin-bottom overflow-hidden">
-                <p className="text-purple-950 font-black text-sm truncate mb-1 text-center w-full px-1">{topThree[1].name}</p>
+              <div className="w-full bg-[#c4b5fd] rounded-t-[2rem] p-4 pt-12 text-center min-h-[160px] flex flex-col justify-center shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-white/30 border-x border-t border-white/40 relative z-10 scale-105 origin-bottom">
+                <p className="text-purple-950 font-black text-sm truncate mb-1 text-center w-full px-2">{topThree[1].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Crown className="w-4 h-4 text-amber-600 fill-amber-500 shrink-0" />
                   <span className="text-purple-900 font-black text-lg">{topThree[1].score}</span>
@@ -197,8 +197,8 @@ export default function LeaderboardPage() {
                   3
                 </div>
               </div>
-              <div className="w-full bg-[#a78bfa]/50 rounded-tr-[2rem] p-4 pt-10 text-center min-h-[80px] flex flex-col justify-center border-r border-t border-white/20 overflow-hidden">
-                <p className="text-white font-bold text-xs truncate mb-1 text-center w-full px-1">{topThree[2].name}</p>
+              <div className="w-full bg-[#a78bfa]/50 rounded-tr-[2rem] p-4 pt-10 text-center min-h-[80px] flex flex-col justify-center border-r border-t border-white/20">
+                <p className="text-white font-bold text-xs truncate mb-1 text-center w-full px-2">{topThree[2].name}</p>
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
                   <span className="text-white font-black text-sm">{topThree[2].score}</span>
@@ -268,13 +268,10 @@ export default function LeaderboardPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-stone-800 text-base md:text-xl truncate">
-                            {u.name}
-                          </span>
-                          {u.isMe && <span className="text-[10px] shrink-0 bg-orange-500 text-white px-2 py-0.5 rounded-full">YOU</span>}
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-stone-800 text-base md:text-xl">
+                          {u.name} {u.isMe && <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full ml-2">YOU</span>}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -329,8 +326,8 @@ export default function LeaderboardPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="font-extrabold text-stone-900 text-base md:text-xl truncate pb-0.5">{currentUser.name || "Kamu"}</span>
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-stone-900 text-base md:text-xl">{currentUser.name || "Kamu"}</span>
                     </div>
                   </div>
                 </div>

@@ -21,9 +21,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
     }
 
+    console.log("Starting PDF processing for user:", userId);
+    const startTime = Date.now();
+
     // 1. Convert File to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log("Buffer prepared:", (Date.now() - startTime) / 1000, "s");
 
     // 2. Upload to Cloudinary
     const cloudinaryResponse = await new Promise((resolve, reject) => {
@@ -40,6 +44,7 @@ export async function POST(req: NextRequest) {
       );
       uploadStream.end(buffer);
     });
+    console.log("Cloudinary upload done:", (Date.now() - startTime) / 1000, "s");
 
     const fileUrl = (cloudinaryResponse as { secure_url: string }).secure_url;
 
@@ -49,6 +54,7 @@ export async function POST(req: NextRequest) {
       model: "gemini-2.5-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
+    console.log("Gemini model initialized. Starting inference...");
 
     // Convert to base64 for Gemini multimodal input
     const base64Data = buffer.toString("base64");
@@ -99,6 +105,7 @@ Pastikan "extractedText" berisi semua teks yang ada di dalam gambar/dokumen agar
         }
       }
     ]);
+    console.log("Gemini analysis done:", (Date.now() - startTime) / 1000, "s");
 
     const aiText = response.response.text() || "{}";
     const cleanJsonString = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
