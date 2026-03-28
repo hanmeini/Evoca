@@ -28,8 +28,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, script: docData.podcastScript }, { status: 200 });
     }
 
-
-
     const prompt = `You are a scriptwriter for an educational podcast. 
     Based on the following document text, create a short conversational podcast script between two hosts: Host A and Host B.
     Host A is the curious learner asking questions, and Host B is the expert explaining the concepts found in the text.
@@ -75,7 +73,7 @@ export async function POST(req: NextRequest) {
     } as any;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       generationConfig: { 
         responseMimeType: "application/json",
         responseSchema: schema

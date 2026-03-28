@@ -70,33 +70,59 @@ export function PdfUploader() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("userId", user.uid);
+      // 1. Upload to Cloudinary (Client-Side to avoid Vercel time limits)
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append("file", file);
+      cloudinaryFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "moomcare");
+      cloudinaryFormData.append("folder", "evoca-uploads");
 
+      const cloudinaryRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`,
+        {
+          method: "POST",
+          body: cloudinaryFormData,
+        }
+      );
+
+      if (!cloudinaryRes.ok) {
+        const errorData = await cloudinaryRes.json();
+        throw new Error(`Cloudinary Upload Failed: ${errorData.error?.message || cloudinaryRes.statusText}`);
+      }
+
+      const cloudinaryData = await cloudinaryRes.json();
+      const fileUrl = cloudinaryData.secure_url;
+
+      // 2. Send to Internal API for AI Analysis
       const response = await fetch("/api/upload-pdf", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileUrl,
+          fileName: file.name,
+          fileType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          fileSize: file.size,
+          userId: user.uid,
+        }),
       });
 
       if (!response.ok) {
-        const rawResponse = await response.text();
-        let errorMessage = "Gagal memproses dokumen (Server Error)";
+        const text = await response.text();
+        let errorMessage = "Failed to process AI analysis";
         
         try {
-          const errorData = JSON.parse(rawResponse);
+          const errorData = JSON.parse(text);
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch (e) {
-           if (rawResponse && rawResponse.length < 200) {
-             errorMessage = rawResponse;
-           }
+          errorMessage = text.length < 100 ? text : "Server error (504/500)";
         }
         
         console.error(`[PDF Upload Error] Status: ${response.status}`, {
           status: response.status,
           statusText: response.statusText,
           message: errorMessage,
-          original: rawResponse.substring(0, 500)
+          original: text.substring(0, 500)
         });
         
         throw new Error(errorMessage);
@@ -127,13 +153,7 @@ export function PdfUploader() {
       }, 1500); 
     } catch (err: any) {
       console.error("Critical Upload failure:", err);
-      
-      // Handle potential Axios-like or Fetch error objects
-      const finalMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          err.message || 
-                          "Gagal mengunggah dokumen. Silakan coba lagi.";
-                          
+      const finalMessage = err.message || "Gagal mengunggah dokumen. Silakan coba lagi.";
       setError(finalMessage);
     } finally {
       setIsUploading(false);
