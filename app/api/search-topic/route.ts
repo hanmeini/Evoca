@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { adminDb } from "@/src/lib/firebase-admin";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const maxDuration = 60;
 
@@ -17,9 +18,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Generate Content with Gemini
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
 
     const prompt = `Anda adalah asisten ahli pendidikan. Tolong buatkan materi belajar yang komprehensif, menarik, dan mudah dipahami mengenai topik: "${topic}".
 Tujuan Anda adalah menyusun informasi penting untuk membantu siswa belajar dan bersiap menghadapi kuis/ujian.
