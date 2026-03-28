@@ -457,7 +457,7 @@ export default function DashboardOverviewPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-3xl bg-black/30"
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-lg bg-black/20"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0, y: 20 }}
@@ -749,6 +749,14 @@ export default function DashboardOverviewPage() {
                                 setIsMissionActive(false);
                                 setIsBlurred(false);
                                 router.refresh();
+                                
+                                // Auto-scroll to the next quest after refresh
+                                setTimeout(() => {
+                                  const nextNode = document.querySelector('[data-status="current"]');
+                                  if (nextNode) {
+                                    nextNode.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }
+                                }, 500); 
                               }, 4500);
                             }
                           } catch (e) {
@@ -1135,7 +1143,7 @@ export default function DashboardOverviewPage() {
             <div className="text-center relative z-10">
               <div className="relative z-10">
                 <div className="flex justify-center mb-6">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-24 h-24 animate-bounce drop-shadow-[0_0_30px_rgba(252,211,77,0.8)]"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#fcd34d" viewBox="0 0 256 256" className="w-16 h-16 animate-bounce drop-shadow-[0_0_30px_rgba(252,211,77,0.8)]"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
                 </div>
                 <p className="text-5xl font-black text-white uppercase mb-4 drop-shadow-lg tracking-tighter">HEBAT!</p>
                 <div className="flex flex-col gap-3 items-center">
@@ -1196,13 +1204,13 @@ export default function DashboardOverviewPage() {
                   <h2 className="text-7xl font-black text-white uppercase tracking-tighter drop-shadow-[0_5px_15px_rgba(0,0,0,0.3)]">
                     LUAR BIASA!
                   </h2>
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-4 px-10 py-5 rounded-[2.5rem] bg-amber-400/20 border-2 border-amber-400/30 backdrop-blur-md">
-                      <div className="w-12 h-12 relative drop-shadow-xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-4 px-10 py-5 rounded-[2.5rem] bg-amber-400/20 border-2 border-amber-400/30 backdrop-blur-md">
+                        <div className="w-10 h-10 relative drop-shadow-xl">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
+                        </div>
+                        <span className="text-4xl font-black text-amber-400 drop-shadow-md">+50 PERMATA</span>
                       </div>
-                      <span className="text-4xl font-black text-amber-400 drop-shadow-md">+50 PERMATA</span>
-                    </div>
                     <p className="mt-6 text-white/70 font-black uppercase tracking-[0.4em] text-xs">Petualanganmu Berlanjut!</p>
                   </div>
                 </motion.div>
