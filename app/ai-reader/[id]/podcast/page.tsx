@@ -81,6 +81,7 @@ export default function AiReaderPodcastPage({
   const [script, setScript] = useState<ScriptLine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [docTitle, setDocTitle] = useState("Podcast Player");
 
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [trackProgress, setTrackProgress] = useState(0);
@@ -173,8 +174,11 @@ export default function AiReaderPodcastPage({
           setScript(data.script);
           const docRes = await fetch(`/api/document/${id}`);
           const docData = await docRes.json();
-          if (docData.success && docData.data?.completedStages?.includes("podcast")) {
-            setIsAlreadyFinishedPodcast(true);
+          if (docData.success && docData.data) {
+            setDocTitle(docData.data.metadata?.title || docData.data.fileName || "Podcast Player");
+            if (docData.data.completedStages?.includes("podcast")) {
+              setIsAlreadyFinishedPodcast(true);
+            }
           }
         } else {
           setError("No script generated.");

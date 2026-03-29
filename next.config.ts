@@ -1,27 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdf-parse"],
+  serverExternalPackages: ["firebase-admin", "@google/generative-ai"],
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
-    ],
-  },
-  outputFileTracingIncludes: {
-    '/api/**/*': [
-      './node_modules/pdf-parse/dist/**/*.mjs',
-      './node_modules/pdf-parse/dist/**/*.cjs',
-      './node_modules/pdf-parse/dist/**/*.js'
-    ],
-    'app/api/**/*': [
-      './node_modules/pdf-parse/dist/**/*.mjs',
-      './node_modules/pdf-parse/dist/**/*.cjs',
-      './node_modules/pdf-parse/dist/**/*.js'
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
     ],
   },
 };
 
 export default nextConfig;
+

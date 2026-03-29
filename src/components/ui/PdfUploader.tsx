@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { UploadCloud, FileText, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
@@ -20,6 +20,7 @@ export function PdfUploader() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -55,6 +56,13 @@ export function PdfUploader() {
   };
 
   const handleFileSelect = (selectedFile: File) => {
+    // 10MB size limit for better AI stability
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setError("Ukuran file terlalu besar! Batas maksimal adalah 10MB agar AI Evoca bisa menganalisis dengan lancar.");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setFile(selectedFile);
   };
 
@@ -71,13 +79,20 @@ export function PdfUploader() {
 
     try {
       // 1. Upload to Cloudinary (Client-Side to avoid Vercel time limits)
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "evoca_preset";
+
+      if (!cloudName) {
+        throw new Error("Cloudinary Cloud Name is missing. Please check your .env.local file.");
+      }
+
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append("file", file);
-      cloudinaryFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "moomcare");
+      cloudinaryFormData.append("upload_preset", uploadPreset);
       cloudinaryFormData.append("folder", "evoca-uploads");
 
       const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
         {
           method: "POST",
           body: cloudinaryFormData,
@@ -92,7 +107,21 @@ export function PdfUploader() {
       const cloudinaryData = await cloudinaryRes.json();
       const fileUrl = cloudinaryData.secure_url;
 
-      // 2. Send to Internal API for AI Analysis
+      // 2. Prepare Base64 for faster/more reliable server processing (if file is reasonably small)
+      const toBase64 = (file: File): Promise<string> => 
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // Remove metadata prefix
+          };
+          reader.onerror = error => reject(error);
+        });
+
+      const fileBase64 = file.size < 4 * 1024 * 1024 ? await toBase64(file) : null;
+
+      // 3. Send to Internal API for AI Analysis
       const response = await fetch("/api/upload-pdf", {
         method: "POST",
         headers: {
@@ -100,6 +129,7 @@ export function PdfUploader() {
         },
         body: JSON.stringify({
           fileUrl,
+          fileBase64,
           fileName: file.name,
           fileType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
           fileSize: file.size,
@@ -151,11 +181,16 @@ export function PdfUploader() {
         const currentTheme = `evoca${((currentMateri - 1) % 5) + 1}`;
         router.push(`/ai-reader/${data.document.id}?theme=${currentTheme}&materi=${currentMateri}`);
       }, 1500); 
-    } catch (err: any) {
-      console.error("Critical Upload failure:", err);
-      const finalMessage = err.message || "Gagal mengunggah dokumen. Silakan coba lagi.";
+    } catch (error: any) {
+      let finalMessage = error instanceof Error ? error.message : "Gagal mengupload dokumen.";
+      
+      if (finalMessage.includes("Failed to fetch") || finalMessage.includes("NetworkError")) {
+        finalMessage = "Koneksi terputus atau server sedang sibuk (Timeout). Mohon coba file yang lebih kecil atau jalankan ulang server (npm run dev).";
+      } else if (finalMessage.toLowerCase().includes("too large") || finalMessage.includes("Request Entity Too Large")) {
+        finalMessage = "Ukuran file terlalu besar untuk diproses! Silakan kompres gambar atau gunakan file yang lebih ringan (Maks 10MB).";
+      }
+      
       setError(finalMessage);
-    } finally {
       setIsUploading(false);
     }
   };
@@ -197,6 +232,7 @@ export function PdfUploader() {
               </p>
             </div>
             <input
+              ref={fileInputRef}
               type="file"
               accept="application/pdf,image/*"
               onChange={handleFileInput}
@@ -222,7 +258,10 @@ export function PdfUploader() {
                 </p>
               </div>
               <button
-                onClick={() => setFile(null)}
+                onClick={() => {
+                  setFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
                 className="text-stone-400 hover:text-stone-600 text-sm font-medium px-2 py-1"
                 disabled={isUploading}
               >

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (isBoss && documentId.startsWith("boss-cluster-")) {
       const clusterNum = parseInt(documentId.split("-")[2]);
       const skipCount = (clusterNum - 1) * 4;
-      
+
       // Determine the user UID (prioritize passed userId, then extract from ID if possible)
       const parts = documentId.split("-");
       const uidToUse = userId || (parts.length >= 4 ? parts.slice(3).join("-") : null);
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       }
 
       const combinedText = realDocs.map(d => d.data().extractedText).join("\n\n---\n\n");
-      
+
       finalDocId = documentId;
       docRef = adminDb.collection("documents").doc(finalDocId);
       const bossSnap = await docRef.get();
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    
+
     // Define the schema for the quiz
     const quizSchema = {
       description: "List of multiple choice quiz questions",
@@ -107,9 +107,9 @@ export async function POST(req: NextRequest) {
       }
     } as any;
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { 
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: quizSchema
       }

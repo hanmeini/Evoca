@@ -28,20 +28,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, script: docData.podcastScript }, { status: 200 });
     }
 
-    const prompt = `You are a scriptwriter for an educational podcast. 
-    Based on the following document text, create a short conversational podcast script between two hosts: Host A and Host B.
-    Host A is the curious learner asking questions, and Host B is the expert explaining the concepts found in the text.
-    Please write the podcast script entirely in Bahasa Indonesia.
+    const prompt = `You are a professional scriptwriter for an educational podcast.
+    Based on the following document text, create an engaging and lively conversational podcast script between two hosts: Host A and Host B.
     
-    Return ONLY a raw JSON array of objects representing the dialogue lines. 
-    Do not include markdown formatting like \`\`\`json.
-    Each object must have this exact structure:
-    {
-      "speaker": "A" or "B",
-      "text": "The spoken dialogue line (in Bahasa Indonesia)"
-    }
+    PERSONA:
+    - Host A: Curiously inquiring, energetic, and relatable. Asks the questions most students would have.
+    - Host B: The expert, warm, clear-voiced, and very encouraging. Explains concepts using analogies and easy-to-understand Indonesian.
     
-    Keep the entire script brief, around 8-12 lines total, summarizing the main points of the document.
+    TONE:
+    - Conversational, smart, but approachable.
+    - Use natural-sounding Bahasa Indonesia (e.g., "Wah, menarik banget!", "Jadi gini...", "Nah, poin pentingnya...").
+    
+    FORMAT:
+    - Return ONLY a raw JSON array of objects representing the dialogue lines. 
+    - Each object must have this exact structure: { "speaker": "A" | "B", "text": "The spoken dialogue line" }
+    - Length: 12-18 lines total.
     
     Document Text: 
     ${docData.extractedText.substring(0, 60000)}
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     // 2. Generate Podcast Script via Gemini API
     const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    
+
     // Define the schema for the podcast script
     const schema = {
       description: "Podcast dialogue script with two speakers",
@@ -72,16 +73,16 @@ export async function POST(req: NextRequest) {
       }
     } as any;
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { 
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema
       }
     });
 
     const response = await model.generateContent(prompt);
-    
+
     const aiText = response.response.text() || "[]";
     const cleanJsonString = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
 

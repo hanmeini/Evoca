@@ -212,10 +212,7 @@ export default function DashboardOverviewPage() {
   // Pre-calculate the current active mission index
   const firstUnfinishedIdx = useMemo(() => {
     for (let i = 0; i < renderedNodes.length; i++) {
-      if (
-        renderedNodes[i].id.startsWith("dummy-") ||
-        calculateProgress(renderedNodes[i]) < 100
-      ) {
+      if (calculateProgress(renderedNodes[i]) < 100) {
         return i;
       }
     }
@@ -469,7 +466,7 @@ export default function DashboardOverviewPage() {
                  animationData={celebrationType === "streak" ? fireAnim : missionCompletedAnim}
                  loop={celebrationType === "streak"}
                  className={cn(
-                   "w-64 h-64 sm:w-80 sm:h-80 drop-shadow-[0_0_50px_rgba(249,115,22,0.4)]",
+                   "w-48 h-48 sm:w-64 sm:h-64 drop-shadow-[0_0_50px_rgba(249,115,22,0.4)]",
                    celebrationType === "streak" ? "scale-100" : "scale-110"
                  )}
                />
@@ -1188,7 +1185,7 @@ export default function DashboardOverviewPage() {
               className="w-full max-w-2xl px-8 flex flex-col items-center"
             >
               <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-96 h-96 mb-2 drop-shadow-[0_0_50px_rgba(251,191,36,0.3)]">
+                <div className="w-64 h-64 mb-2 drop-shadow-[0_0_50px_rgba(251,191,36,0.3)]">
                   <Lottie
                     animationData={missionCompletedAnim}
                     loop={false}
@@ -1209,7 +1206,7 @@ export default function DashboardOverviewPage() {
                         <div className="w-10 h-10 relative drop-shadow-xl">
                           <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#fcd34d" viewBox="0 0 256 256"><path d="M249,96.1l-56-64a12,12,0,0,0-9-4.1H72a12,12,0,0,0-9,4.1L7,96.1a12,12,0,0,0,.26,16.09l112,120a12,12,0,0,0,17.54,0l112-120A12,12,0,0,0,249,96.1ZM213.55,92H182L152,52h26.55ZM71.88,116l21.19,53L43.61,116Zm86.4,0L128,191.69,97.72,116ZM104,92l24-32,24,32Zm80.12,24h28.27l-49.46,53ZM77.45,52H104L74,92H42.45Z"></path></svg>
                         </div>
-                        <span className="text-4xl font-black text-amber-400 drop-shadow-md">+50 PERMATA</span>
+                        <span className="text-2xl font-black text-amber-400 drop-shadow-md">+50 PERMATA</span>
                       </div>
                     <p className="mt-6 text-white/70 font-black uppercase tracking-[0.4em] text-xs">Petualanganmu Berlanjut!</p>
                   </div>

@@ -169,7 +169,7 @@ export function PathNode({
       {/* Wrapper to Perfectly Center Circle & SVG Ring */}
       <div className="relative flex items-center justify-center w-16 h-16 z-20">
         {/* Progress SVG Ring */}
-        {!isNew && !isLocked && (
+        {!isLocked && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 flex items-center justify-center">
             <svg viewBox="0 0 84 84" className="w-[84px] h-[84px] transform -rotate-90 drop-shadow-sm">
               <circle

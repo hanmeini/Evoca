@@ -151,7 +151,7 @@ export default function MissionsPage() {
                       <Lottie 
                         animationData={missionCompletedAnim}
                         loop={false}
-                        className="w-48 h-48"
+                        className="w-32 h-32"
                       />
                    </div>
                    <div className="-mt-10">
@@ -159,7 +159,7 @@ export default function MissionsPage() {
                       <div className="flex flex-col gap-3 items-center">
                          <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 rounded-[1.5rem] border-2 border-amber-100 shadow-sm">
                            <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-                           <span className="text-2xl font-black text-amber-600">+{showSuccess.gems}</span>
+                           <span className="text-xl font-black text-amber-600">+{showSuccess.gems}</span>
                          </div>
                          
                          <div className="flex gap-4">
