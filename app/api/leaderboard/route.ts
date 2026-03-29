@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       .limit(20)
       .get();
 
-    const leaderboard = usersSnapshot.docs.map(doc => {
+    const leaderboard = usersSnapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         uid: doc.id,

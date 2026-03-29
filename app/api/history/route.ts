@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       .limit(20);
 
     const querySnapshot = await q.get();
-    const history = querySnapshot.docs.map(doc => ({
+    const history = querySnapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
