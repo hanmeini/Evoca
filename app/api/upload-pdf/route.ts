@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     // 1. Get Buffer/Base64 for Gemini multimodal input
     let base64Data: string;
     let fileBuffer: Buffer;
-    
+
     if (fileBase64) {
       console.log("Using direct Base64 from client.");
       base64Data = fileBase64;
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // 2. NEW: Extract text for LONG PDF support (if not a scan)
     let extractedRawText = "";
     const isPdf = fileType === "application/pdf" || (fileName && fileName.toLowerCase().endsWith(".pdf"));
-    
+
     if (isPdf) {
       try {
         const pdf = require("pdf-parse");
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Multimodal Analysis with Gemini
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
     const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -68,10 +68,31 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+
+    // Define the schema to FORCE valid JSON output
+    const responseSchema = {
+      description: "Structured document analysis result",
+      type: SchemaType.OBJECT,
+      properties: {
+        title: { type: SchemaType.STRING, description: "Judul materi (Bahasa Indonesia)" },
+        summary: { type: SchemaType.STRING, description: "Ringkasan strategis dengan poin-poin" },
+        keyConcepts: {
+          type: SchemaType.ARRAY,
+          items: { type: SchemaType.STRING },
+          description: "List of key concepts"
+        },
+        extractedText: { type: SchemaType.STRING, description: "Konten teks lengkap hasil ekstraksi untuk konteks AI" },
+        confidenceScore: { type: SchemaType.NUMBER },
+        estimatedReadTimeMinutes: { type: SchemaType.NUMBER }
+      },
+      required: ["title", "summary", "keyConcepts", "extractedText", "confidenceScore", "estimatedReadTimeMinutes"]
+    } as any;
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash", // Using stable 2.0-flash for production reliability
       generationConfig: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        responseSchema: responseSchema
       }
     });
 
@@ -98,8 +119,8 @@ Gunakan Bahasa Indonesia sepenuhnya.`;
     try {
       // Logic: If we have significant extracted text, we send it as text (can handle 1000s of pages).
       // Otherwise, we send as multimodal (better for scans/images).
-      const finalInput = extractedRawText.length > 500 
-        ? [prompt + "\n\nISI DOKUMEN:\n" + extractedRawText] 
+      const finalInput = extractedRawText.length > 500
+        ? [prompt + "\n\nISI DOKUMEN:\n" + extractedRawText]
         : [prompt, { inlineData: { data: base64Data, mimeType: fileType || "application/pdf" } }];
 
       const result = await Promise.race([
@@ -122,14 +143,21 @@ Gunakan Bahasa Indonesia sepenuhnya.`;
       }
 
       const aiText = responseText || "{}";
-      const cleanJsonString = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      // Robust JSON detection
+      let cleanJsonString = aiText;
+      const firstCurly = aiText.indexOf('{');
+      const lastCurly = aiText.lastIndexOf('}');
+      if (firstCurly !== -1 && lastCurly !== -1) {
+        cleanJsonString = aiText.substring(firstCurly, lastCurly + 1);
+      }
 
       let processedAiResult;
       try {
         processedAiResult = JSON.parse(cleanJsonString);
       } catch (parseError) {
-        console.error("Failed to parse Gemini JSON output:", cleanJsonString);
-        throw new Error("Gagal memproses hasil analisis AI. Harap coba lagi.");
+        console.error("Failed to parse Gemini JSON output. Raw Text:", aiText);
+        throw new Error("Gagal memproses hasil analisis AI. Harap coba lagi atau gunakan file yang lebih jelas.");
       }
 
       const { extractedText, ...metadata } = processedAiResult;
@@ -154,7 +182,7 @@ Gunakan Bahasa Indonesia sepenuhnya.`;
       };
 
       if (!adminDb) {
-         throw new Error("Firestore Admin SDK is not initialized.");
+        throw new Error("Firestore Admin SDK is not initialized.");
       }
 
       await adminDb.collection("documents").doc(docId).set(newDoc);
