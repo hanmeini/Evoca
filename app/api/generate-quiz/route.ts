@@ -34,14 +34,14 @@ export async function POST(req: NextRequest) {
         .get();
 
       const realDocs = docsSnap.docs
-        .filter(d => !d.id.startsWith("dummy-") && !d.id.startsWith("boss-cluster-"))
+        .filter((d: any) => !d.id.startsWith("dummy-") && !d.id.startsWith("boss-cluster-"))
         .slice(skipCount, skipCount + 4);
 
       if (realDocs.length === 0) {
         return NextResponse.json({ error: "Materials for unit exam not found. Complete 4 regular missions first!" }, { status: 400 });
       }
 
-      const combinedText = realDocs.map(d => d.data().extractedText).join("\n\n---\n\n");
+      const combinedText = realDocs.map((d: any) => d.data().extractedText).join("\n\n---\n\n");
 
       finalDocId = documentId;
       docRef = adminDb.collection("documents").doc(finalDocId);
