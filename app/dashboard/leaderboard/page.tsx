@@ -268,9 +268,10 @@ export default function LeaderboardPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-stone-800 text-base md:text-xl">
-                          {u.name} {u.isMe && <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full ml-2">YOU</span>}
+                      <div className="flex flex-col flex-1 min-w-0 pr-2">
+                        <span className="font-bold text-stone-800 text-base md:text-xl flex items-center min-w-0">
+                          <span className="truncate">{u.name}</span>
+                          {u.isMe && <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full ml-2 shrink-0">YOU</span>}
                         </span>
                       </div>
                     </div>
@@ -326,8 +327,8 @@ export default function LeaderboardPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-extrabold text-stone-900 text-base md:text-xl">{currentUser.name || "Kamu"}</span>
+                    <div className="flex flex-col flex-1 min-w-0 pr-2">
+                      <span className="font-extrabold text-stone-900 text-base md:text-xl truncate">{currentUser.name || "Kamu"}</span>
                     </div>
                   </div>
                 </div>
